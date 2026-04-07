@@ -6,8 +6,12 @@ import { buildPaginationMeta, parsePagination } from "../../utils/helpers/pagina
 import { In } from "typeorm";
 
 interface CreateOrderItemInput {
-  menuItemId: string;
-  quantity: number;
+  menuItemId?: string;
+  id?: string;
+  itemId?: string;
+  name?: string;
+  quantity?: number;
+  qty?: number;
 }
 
 interface CreateOrderInput {
@@ -33,6 +37,14 @@ export class OrderService {
     const isUuid = (value: string) =>
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
     const normalizeName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const getItemRef = (item: CreateOrderItemInput) => {
+      const candidates = [item.menuItemId, item.id, item.itemId, item.name];
+      for (const candidate of candidates) {
+        if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+      }
+      return "";
+    };
+    const getQuantity = (item: CreateOrderItemInput) => Number(item.quantity ?? item.qty);
 
     if (!Array.isArray(payload.items) || payload.items.length === 0) {
       return { error: "INVALID_ITEMS" };
@@ -40,8 +52,8 @@ export class OrderService {
 
     const menuRepo = AppDataSource.getRepository(MenuItem);
     const normalizedItems = payload.items.map((item) => ({
-      ref: String(item.menuItemId || "").trim(),
-      quantity: Number(item.quantity),
+      ref: getItemRef(item),
+      quantity: getQuantity(item),
     }));
 
     if (normalizedItems.some((item) => !item.ref || !Number.isFinite(item.quantity) || item.quantity <= 0)) {

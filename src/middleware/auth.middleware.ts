@@ -4,9 +4,27 @@ import { AppDataSource } from '../configs/psqlDb.config';
 import { User } from '../entities/user/user.entity';
 import { roleCheck } from './roleCheck.middleware';
 
+const resolveAccessToken = (req: Request): string | undefined => {
+  const cookieCandidates = [
+    req.cookies?.access_token,
+    req.cookies?.accessToken,
+    req.cookies?.token,
+    req.signedCookies?.access_token,
+    req.signedCookies?.accessToken,
+    req.signedCookies?.token,
+  ];
+
+  for (const candidate of cookieCandidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+  return undefined;
+};
+
 export const jwtVerify = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = resolveAccessToken(req);
     if (!token) {
       return res.status(401).json({ message: 'No token provided' });
     }
