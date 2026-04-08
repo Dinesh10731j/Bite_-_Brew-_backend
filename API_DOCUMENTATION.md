@@ -137,11 +137,15 @@ Short explanation: List menu items.
 ### `POST /menu/items`
 Short explanation: Create a menu item.
 - Auth: Yes (`admin`, `manager`)
-- Body:
+- Content-Type:
+  - `application/json` or `multipart/form-data`
+- Body/Form fields:
   - `name` (required)
   - `categoryId` (required)
   - `price` (required)
-  - `description`, `image`, `available`, `featured`, `discount` (optional)
+  - `image` (optional URL string)
+  - `image` (optional file when using `multipart/form-data`, max 5MB)
+  - `description`, `available`, `featured`, `discount` (optional)
 - Response:
   - `201` created
   - `400` category not found or invalid payload
@@ -309,8 +313,11 @@ Short explanation: List gallery images.
 ### `POST /gallery`
 Short explanation: Add gallery image entry.
 - Auth: Yes (`admin`, `manager`)
-- Body:
-  - `url` (required)
+- Content-Type:
+  - `application/json` or `multipart/form-data`
+- Body/Form fields:
+  - `url` (required for JSON requests)
+  - `image` (required file for multipart requests, max 5MB)
   - `category`, `tags`, `featured`, `orderIndex` (optional)
 - Response: `201` created, `400` bad request
 
@@ -324,6 +331,20 @@ Short explanation: Update gallery image fields.
 Short explanation: Delete gallery image.
 - Auth: Yes (`admin`)
 - Response: `200` deleted, `404` not found
+
+## Uploads
+
+### `POST /uploads/image`
+Short explanation: Upload an image file to Cloudinary and return hosted metadata.
+- Auth: Yes (`admin`, `manager`)
+- Content-Type: `multipart/form-data`
+- Form data:
+  - `image` (file, required; max 5MB; image mime type only)
+  - `folder` (string, optional; example `bite-brew/gallery`)
+- Response:
+  - `201` created with `{ url, publicId, width, height, format, bytes }`
+  - `400` bad request (missing file, invalid file type, invalid folder, file too large)
+  - `500` Cloudinary misconfiguration or upload failure
 
 ## Dashboard
 
@@ -360,4 +381,3 @@ Short explanation: Sales report by date range with top-selling items.
 ```http
 Authorization: Bearer <your_access_token>
 ```
-

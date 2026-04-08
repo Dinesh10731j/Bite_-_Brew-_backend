@@ -9,6 +9,7 @@ import galleryRoutes from "./gallery/gallery.routes";
 import dashboardRoutes from "./dashboard/dashboard.routes";
 import analyticsRoutes from "./analytics/analytics.routes";
 import reportsRoutes from "./reports/reports.routes";
+import uploadRoutes from "./upload/upload.routes";
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use("/gallery", galleryRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/analytics", analyticsRoutes);
 router.use("/reports", reportsRoutes);
+router.use("/uploads", uploadRoutes);
 
 export default router;
