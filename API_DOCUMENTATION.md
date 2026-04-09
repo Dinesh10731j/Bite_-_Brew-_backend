@@ -41,6 +41,12 @@ Short explanation: Login user and issue JWT tokens.
   - `200` login success
   - `400` invalid credentials/payload
 
+### `POST /auth/logout`
+Short explanation: Logout user by clearing auth cookies.
+- Auth: No
+- Response:
+  - `200` logout success
+
 ### `POST /auth/forgot-password`
 Short explanation: Send password reset email with reset token.
 - Auth: No

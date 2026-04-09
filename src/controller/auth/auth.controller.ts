@@ -13,6 +13,13 @@ const authRepo = new AuthRepository();
 const authService = new AuthService(authRepo);
 
 export class AuthController {
+  private static readonly authCookieOptions = {
+    httpOnly: true as const,
+    secure: false,
+    sameSite: "strict" as const,
+    path: "/",
+  };
+
   static async signup(req: Request, res: Response) {
     try {
       const dto = plainToInstance(SignUpDTO, req.body) as SignUpDTO;
@@ -23,15 +30,11 @@ export class AuthController {
 
       res
         .cookie("access_token", access_token, {
-          httpOnly: true,
-          secure: false,
-          sameSite: "strict",
+          ...AuthController.authCookieOptions,
           maxAge: 15 * 60 * 1000,
         })
         .cookie("refresh_token", refresh_token, {
-          httpOnly: true,
-          secure: false,
-          sameSite: "strict",
+          ...AuthController.authCookieOptions,
           maxAge: 7 * 24 * 60 * 60 * 1000,
         })
         .status(HTTP_STATUS.CREATED)
@@ -53,15 +56,11 @@ export class AuthController {
 
       res
         .cookie("access_token", access_token, {
-          httpOnly: true,
-          secure: false,
-          sameSite: "strict",
+          ...AuthController.authCookieOptions,
           maxAge: 15 * 60 * 1000,
         })
         .cookie("refresh_token", refresh_token, {
-          httpOnly: true,
-          secure: false,
-          sameSite: "strict",
+          ...AuthController.authCookieOptions,
           maxAge: 7 * 24 * 60 * 60 * 1000,
         })
         .status(HTTP_STATUS.OK)
@@ -69,6 +68,17 @@ export class AuthController {
     } catch (_err: unknown) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: Message.INVALID_EMAIL_OR_PASSWORD });
     }
+  }
+
+  static async logout(_req: Request, res: Response) {
+    return res
+      .clearCookie("access_token", AuthController.authCookieOptions)
+      .clearCookie("accessToken", AuthController.authCookieOptions)
+      .clearCookie("token", AuthController.authCookieOptions)
+      .clearCookie("refresh_token", AuthController.authCookieOptions)
+      .clearCookie("refreshToken", AuthController.authCookieOptions)
+      .status(HTTP_STATUS.OK)
+      .json({ message: Message.LOGOUT_SUCCESS });
   }
 
   static async forgotPassword(req: Request, res: Response) {

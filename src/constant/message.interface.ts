@@ -14,6 +14,7 @@ export const MESSAGES = {
   USER_ALREADY_EXISTS: 'User already exists',
   USER_NOT_FOUND: 'User not found',
   LOGIN_SUCCESS: 'Login successful',
+  LOGOUT_SUCCESS: 'Logout successful',
   INVALID_REQUEST: 'Invalid request',
   INVALID_EMAIL_OR_PASSWORD: 'Invalid email or password',
   RESET_EMAIL_SENT: 'Reset email sent',
