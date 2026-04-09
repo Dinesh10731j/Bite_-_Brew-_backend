@@ -4,6 +4,7 @@ import { AppDataSource } from './configs/psqlDb.config';
 import { envConfig } from './configs/env.config';
 import { verifySmtpConnection } from './configs/smtp.config';
 import { redisClient, verifyRedisConnection } from './configs/redis.config';
+import './queue/email.worker';
 
 const { server } = createApp();
 const basePort = Number(envConfig.PORT) || 7000;

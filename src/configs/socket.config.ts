@@ -1,11 +1,9 @@
 import { Server, ServerOptions } from "socket.io";
 import http from "http";
+import { socketCorsOptions } from "./cors.config";
 
 export const socketOptions: Partial<ServerOptions> = {
-  cors: {
-    origin: process.env.CLIENT_URL || process.env.FRONTEND_ORIGIN || "http://localhost:3000",
-    credentials: true,
-  },
+  cors: socketCorsOptions,
   transports: ["websocket", "polling"],
 };
 

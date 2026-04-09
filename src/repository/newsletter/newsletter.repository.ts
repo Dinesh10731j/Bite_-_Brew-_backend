@@ -21,6 +21,16 @@ export class NewsletterRepository {
     return qb.orderBy("newsletter.subscribedAt", "DESC").skip(skip).take(take).getManyAndCount();
   }
 
+  async listActiveEmails(): Promise<string[]> {
+    const rows = await this.repo
+      .createQueryBuilder("newsletter")
+      .select("newsletter.email", "email")
+      .where("newsletter.status = :status", { status: "active" })
+      .getRawMany<{ email: string }>();
+
+    return rows.map((row) => row.email);
+  }
+
   findById(id: string) {
     return this.repo.findOneBy({ id });
   }

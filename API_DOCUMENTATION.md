@@ -237,6 +237,8 @@ Short explanation: Subscribe an email to newsletter.
   - `201` subscribed
   - `200` already subscribed
   - `400` bad request
+- Notes:
+  - On new subscription, a welcome email is queued through BullMQ (`email` queue) and sent asynchronously by the worker.
 
 ### `GET /newsletter`
 Short explanation: List newsletter subscribers.
@@ -245,6 +247,29 @@ Short explanation: List newsletter subscribers.
   - `page`, `limit` (optional)
   - `status` (optional)
 - Response: `200` paginated subscribers
+
+### `POST /newsletter/campaign`
+Short explanation: Queue a promotional newsletter campaign to subscribed and/or registered users.
+- Auth: Yes (`admin`, `manager`)
+- Body:
+  - `subject` (required string)
+  - `headline` (required string)
+  - `intro` (optional string)
+  - `offerTitle` (optional string; e.g. `20% Weekend Discount`)
+  - `offerDescription` (optional string)
+  - `events` (optional string array; max 8 rendered)
+  - `couponCode` (optional string)
+  - `validUntil` (optional string; free-form date text)
+  - `ctaText` (optional string)
+  - `ctaUrl` (optional string; must be `http/https` to be used as link)
+  - `sendToSubscribers` (optional boolean, default `true`)
+  - `sendToRegisteredUsers` (optional boolean, default `true`)
+- Response:
+  - `200` queued with recipient count
+  - `400` invalid payload
+- Notes:
+  - Recipients are de-duplicated by email across newsletter subscribers and registered users.
+  - Emails are queued via BullMQ `email` queue and sent asynchronously.
 
 ### `PATCH /newsletter/:id/status`
 Short explanation: Update subscriber status.

@@ -8,6 +8,7 @@ import { SignInDTO, SignUpDTO } from "../../dto/user/user.dto";
 import { AuthRepository } from "../../repository/auth/auth.repository";
 import { ServiceResult } from "../../types/service_result";
 import { sendSmtpMail } from "../../configs/smtp.config";
+import { buildResetPasswordTemplate, buildResetPasswordTextTemplate } from "../../templates/auth.template";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || process.env.ACCESS_TOKEN_SECRET || "access_secret";
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || process.env.REFRESH_TOKEN_SECRET || "refresh_secret";
@@ -85,11 +86,28 @@ export class AuthService {
     user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
     await this.authRepository.saveUser(user);
 
-    const resetUrl = `${process.env.FRONTEND_ORIGIN || process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?email=${encodeURIComponent(user.email)}&token=${token}`;
+    const frontendBase = process.env.FRONTEND_ORIGIN || process.env.FRONTEND_URL || "http://localhost:3000";
+    const resetUrl = `${frontendBase.replace(/\/$/, "")}/reset-password?email=${encodeURIComponent(user.email)}&token=${token}`;
+    const appName = process.env.APP_NAME || "Bite Brew Cafe";
+    const supportEmail = process.env.SUPPORT_EMAIL || process.env.SMTP_USER || "support@bitebrew.local";
+
     await sendSmtpMail({
       to: user.email,
-      subject: "Password Reset Request",
-      html: `<p>Hello ${user.name},</p><p>Use the link below to reset your password (valid for 1 hour):</p><p><a href="${resetUrl}">${resetUrl}</a></p>`,
+      subject: `${appName} Password Reset`,
+      html: buildResetPasswordTemplate({
+        name: user.name || "User",
+        resetUrl,
+        appName,
+        supportEmail,
+        expiresInMinutes: 60,
+      }),
+      text: buildResetPasswordTextTemplate({
+        name: user.name || "User",
+        resetUrl,
+        appName,
+        supportEmail,
+        expiresInMinutes: 60,
+      }),
     });
 
     return { status: HTTP_STATUS.OK };

@@ -7,6 +7,7 @@ import { autoUserTracking } from '../middleware/autoUserTracking.middleware';
 import { responseNormalize } from "../middleware/responseNormalize.middleware";
 import indexRouter from "../routes/index.route";
 import { httpLogger } from "../utils/logger";
+import { corsOptions } from './cors.config';
 
 const createApp = () => {
   const app = express();
@@ -14,10 +15,7 @@ const createApp = () => {
   // Middleware stack as per flow
 
   // CORS
-  app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3001',
-    credentials: true,
-  }));
+  app.use(cors(corsOptions));
 
   // Cookies
   app.use(cookieParser());
