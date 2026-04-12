@@ -17,6 +17,7 @@ const createApp = () => {
   // CORS
   app.use(cors(corsOptions));
 
+
   // Cookies
   app.use(cookieParser());
 
@@ -38,7 +39,6 @@ const createApp = () => {
   // Rate limiting
   app.use(rateLimit);
 
-  // Additional middleware can be attached per route.
 
   // API base path /api/v1/bite-brew
   app.use('/api/v1/bite-brew', indexRouter);
