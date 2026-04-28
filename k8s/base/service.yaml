@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bite-brew-cafe-backend
+  labels:
+    app: bite-brew-cafe-backend
+spec:
+  selector:
+    app: bite-brew-cafe-backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 7000

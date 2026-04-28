@@ -1,0 +1,97 @@
+name: cd
+
+on:
+  workflow_run:
+    workflows: ['ci']
+    types: [completed]
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Container image tag to deploy to production (usually a commit SHA)'
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  APP_NAME: bite-brew-cafe-backend
+
+jobs:
+  deploy-dev:
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'develop'
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Configure kubectl for EKS
+        run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+      - name: Deploy to development namespace
+        env:
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.event.workflow_run.head_sha }}
+        run: |
+          kubectl apply -k k8s/overlays/dev
+          kubectl -n bite-brew-dev set image deployment/$APP_NAME app=$IMAGE
+          kubectl -n bite-brew-dev rollout status deployment/$APP_NAME --timeout=180s
+
+  deploy-staging:
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Configure kubectl for EKS
+        run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+      - name: Deploy to staging namespace
+        env:
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.event.workflow_run.head_sha }}
+        run: |
+          kubectl apply -k k8s/overlays/staging
+          kubectl -n bite-brew-staging set image deployment/$APP_NAME app=$IMAGE
+          kubectl -n bite-brew-staging rollout status deployment/$APP_NAME --timeout=300s
+
+  deploy-production:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Configure kubectl for EKS
+        run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+      - name: Deploy to production namespace
+        env:
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.event.inputs.image_tag }}
+        run: |
+          kubectl apply -k k8s/overlays/prod
+          kubectl -n bite-brew-prod set image deployment/$APP_NAME app=$IMAGE
+          kubectl -n bite-brew-prod rollout status deployment/$APP_NAME --timeout=300s
+      - name: Rollback hint on failure
+        if: failure()
+        run: |
+          kubectl -n bite-brew-prod rollout undo deployment/$APP_NAME
+          kubectl -n bite-brew-prod rollout status deployment/$APP_NAME --timeout=300s

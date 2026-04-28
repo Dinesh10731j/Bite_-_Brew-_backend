@@ -10,6 +10,10 @@ import geoip from 'geoip-lite';
  * Requires req.user from auth middleware.
  */
 export const autoUserTracking = async (req: Request, res: Response, next: NextFunction) => {
+  if (process.env.NODE_ENV === 'test') {
+    return next();
+  }
+
   res.on('finish', async () => {
     const rawIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip;
     const ip = (rawIp || '').replace('::ffff:', '');
@@ -53,5 +57,4 @@ export const autoUserTracking = async (req: Request, res: Response, next: NextFu
 
   next();
 };
-
 

@@ -1,5 +1,7 @@
 import { config } from "dotenv";
-config();
+if (process.env.NODE_ENV !== "test") {
+  config();
+}
 
 const cleanEnv = (value?: string): string | undefined => {
   if (value === undefined) return undefined;

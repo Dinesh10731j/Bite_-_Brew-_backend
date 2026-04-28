@@ -1,0 +1,6 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bite-brew-cafe-backend
+spec:
+  replicas: 2

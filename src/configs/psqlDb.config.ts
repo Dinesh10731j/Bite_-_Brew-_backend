@@ -3,7 +3,9 @@ import { DataSource } from 'typeorm';
 import { envConfig } from "./env.config";
 import url from 'url';
 
-const dbUrl = envConfig.DB_URL;
+const dbUrl =
+  envConfig.DB_URL ||
+  (process.env.NODE_ENV === "test" ? "postgresql://postgres:postgres@localhost:5432/bitebrew" : undefined);
 if (!dbUrl) {
   throw new Error('DB_URL is required in environment variables');
 }

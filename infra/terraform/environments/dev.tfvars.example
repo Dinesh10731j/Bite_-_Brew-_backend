@@ -1,0 +1,8 @@
+aws_region              = "us-east-1"
+project_name            = "bite-brew-cafe-backend"
+environment             = "dev"
+github_org              = "your-github-org"
+github_repo             = "bite-brew-cafe-backend"
+eks_cluster_name        = "bite-brew-dev"
+create_eks_cluster      = false
+github_branch_patterns  = ["develop"]

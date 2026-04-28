@@ -26,7 +26,7 @@ export class AuthController {
       const errors = await validate(dto);
       if (errors.length > 0) return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
 
-      const { user, access_token, refresh_token } = await authService.signup(dto);
+      const {access_token, refresh_token } = await authService.signup(dto);
 
       res
         .cookie("access_token", access_token, {
@@ -38,7 +38,7 @@ export class AuthController {
           maxAge: 7 * 24 * 60 * 60 * 1000,
         })
         .status(HTTP_STATUS.CREATED)
-        .json({ message: Message.USER_CREATED_SUCCESS, user });
+        .json({ message: Message.USER_CREATED_SUCCESS });
     } catch (err: unknown) {
       const e = err as { message?: string };
       const msg = e.message === Message.USER_ALREADY_EXISTS ? Message.USER_ALREADY_EXISTS : Message.INVALID_REQUEST;

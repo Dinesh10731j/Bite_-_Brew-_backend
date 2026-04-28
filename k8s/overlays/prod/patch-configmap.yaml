@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bite-brew-config
+data:
+  NODE_ENV: production
+  RUN_MIGRATIONS: 'false'

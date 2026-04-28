@@ -8,6 +8,7 @@ import { responseNormalize } from "../middleware/responseNormalize.middleware";
 import indexRouter from "../routes/index.route";
 import { httpLogger } from "../utils/logger";
 import { corsOptions } from './cors.config';
+import { getMetrics, metricsContentType } from '../observability/metrics';
 
 const createApp = () => {
   const app = express();
@@ -32,16 +33,21 @@ const createApp = () => {
   app.use(httpLogger);
   app.use(responseNormalize);
 
+  // Rate limiting should run before heavier tracking middleware.
+  app.use(rateLimit);
+
   // Auto tracking
   app.use(autoUserTracking);
 
 
-  // Rate limiting
-  app.use(rateLimit);
-
-
   // API base path /api/v1/bite-brew
   app.use('/api/v1/bite-brew', indexRouter);
+  app.get('/metrics', async (_req, res) => {
+    res.setHeader('Content-Type', metricsContentType);
+    res.status(200).send(await getMetrics());
+  });
+  app.get('/livez', (_req, res) => res.status(200).json({ status: 'live' }));
+  app.get('/readyz', (_req, res) => res.status(200).json({ status: 'ready' }));
 
   // Create HTTP server (don't listen)
   const server = require('http').createServer(app);

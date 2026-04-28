@@ -7,7 +7,8 @@ export type EmailQueuePayload = {
   html: string;
 };
 
-const emailQueue = createQueue("email");
+const isTest = process.env.NODE_ENV === "test";
+const emailQueue = isTest ? null : createQueue("email");
 
 const emailJobOptions: JobsOptions = {
   attempts: 3,
@@ -17,10 +18,12 @@ const emailJobOptions: JobsOptions = {
 };
 
 export const enqueueEmail = async (payload: EmailQueuePayload): Promise<void> => {
+  if (!emailQueue) return;
   await emailQueue.add("send-email", payload, emailJobOptions);
 };
 
 export const enqueueBulkEmail = async (payloads: EmailQueuePayload[]): Promise<void> => {
+  if (!emailQueue) return;
   if (payloads.length === 0) {
     return;
   }
