@@ -25,7 +25,7 @@ export class AnalyticsRepository {
     return Number(row?.total || 0);
   }
 
-  async getDailyVisits(days: number) {
+async getDailyVisits(days: number) {
     const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     return this.visitRepo
       .createQueryBuilder("visit")
@@ -35,5 +35,29 @@ export class AnalyticsRepository {
       .groupBy("DATE(visit.visitedAt)")
       .orderBy("DATE(visit.visitedAt)", "ASC")
       .getRawMany<{ day: string; count: string }>();
+  }
+
+  async getDailyOrders(days: number) {
+    const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    return this.orderRepo
+      .createQueryBuilder("order")
+      .select("DATE(order.createdAt)", "day")
+      .addSelect("COUNT(*)", "count")
+      .where("order.createdAt >= :from", { from })
+      .groupBy("DATE(order.createdAt)")
+      .orderBy("DATE(order.createdAt)", "ASC")
+      .getRawMany<{ day: string; count: string }>();
+  }
+
+  async getDailyRevenue(days: number) {
+    const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    return this.orderRepo
+      .createQueryBuilder("order")
+      .select("DATE(order.createdAt)", "day")
+      .addSelect("COALESCE(SUM(order.totalPrice), 0)", "revenue")
+      .where("order.createdAt >= :from", { from })
+      .groupBy("DATE(order.createdAt)")
+      .orderBy("DATE(order.createdAt)", "ASC")
+      .getRawMany<{ day: string; revenue: string }>();
   }
 }
