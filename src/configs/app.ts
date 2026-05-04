@@ -9,6 +9,8 @@ import indexRouter from "../routes/index.route";
 import { httpLogger } from "../utils/logger";
 import { corsOptions } from './cors.config';
 import { getMetrics, metricsContentType } from '../observability/metrics';
+import http from "http";
+import { setupSocket } from "./socket.config";
 
 const createApp = () => {
   const app = express();
@@ -50,7 +52,8 @@ const createApp = () => {
   app.get('/readyz', (_req, res) => res.status(200).json({ status: 'ready' }));
 
   // Create HTTP server (don't listen)
-  const server = require('http').createServer(app);
+  const server = http.createServer(app);
+  setupSocket(server);
 
   return { app, server };
 };

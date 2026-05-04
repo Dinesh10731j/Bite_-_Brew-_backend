@@ -2,6 +2,7 @@ import { CorsOptions } from 'cors';
 
 const DEFAULT_DEV_ORIGINS = [
   'http://localhost:3000',
+   'http://localhost:3002',
   'http://localhost:3004',
   'http://127.0.0.1:3000',
   'http://127.0.0.1:3001',
