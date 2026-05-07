@@ -6,6 +6,7 @@ type ActivityLogItem = {
   id: string;
   type: "visit" | "admin_action";
   userId?: string;
+  userName?: string;
   action?: string;
   details?: string;
   ip?: string;
@@ -38,6 +39,7 @@ export class ActivityLogsService {
       id: visit.id,
       type: "visit",
       userId: visit.userId,
+      userName: visit.user?.name || "Anonymous",
       ip: visit.ip,
       country: visit.country,
       city: visit.city,
@@ -53,6 +55,7 @@ export class ActivityLogsService {
       id: log.id,
       type: "admin_action",
       userId: log.adminId,
+      userName: log.admin?.name || "Unknown",
       action: log.action,
       details: log.details,
       timestamp: log.timestamp,

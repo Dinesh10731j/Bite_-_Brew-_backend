@@ -47,6 +47,35 @@ export class NotificationsService {
     return this.repository.save(notification);
   }
 
+  async update(id: string, payload: {
+    content?: string;
+    type?: NotificationType;
+    priority?: NotificationPriority;
+    actionLink?: string;
+    isRead?: boolean;
+  }) {
+    const notification = await this.repository.findById(id);
+    if (!notification) {
+      return null;
+    }
+    if (typeof payload.content === "string") {
+      notification.content = payload.content;
+    }
+    if (typeof payload.type === "string") {
+      notification.type = payload.type;
+    }
+    if (typeof payload.priority === "string") {
+      notification.priority = payload.priority;
+    }
+    if (typeof payload.actionLink === "string") {
+      notification.actionLink = payload.actionLink;
+    }
+    if (typeof payload.isRead === "boolean") {
+      notification.isRead = payload.isRead;
+    }
+    return this.repository.save(notification);
+  }
+
   async markAllRead(userId: string) {
     await this.repository.markAllReadByUser(userId);
   }

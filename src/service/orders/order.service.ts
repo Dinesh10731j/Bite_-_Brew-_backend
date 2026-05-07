@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentMethod } from "../../constant/enum.constant";
+import { OrderStatus, OrderPriority, PaymentMethod } from "../../constant/enum.constant";
 import { AppDataSource } from "../../configs/psqlDb.config";
 import { MenuItem } from "../../entities/menu/menu.entity";
 import { OrdersRepository } from "../../repository/orders/orders.repository";
@@ -21,6 +21,7 @@ interface CreateOrderInput {
   tableNumber?: string;
   deliveryAddress?: string;
   orderType?: string;
+  priority?: OrderPriority | string;
   paymentMethod?: PaymentMethod;
   items: CreateOrderItemInput[];
 }
@@ -138,6 +139,7 @@ export class OrderService {
     const orderPayload: {
       customerName: string;
       orderType: string;
+      priority: OrderPriority;
       paymentMethod: PaymentMethod;
       totalPrice: number;
       status: OrderStatus;
@@ -149,10 +151,17 @@ export class OrderService {
     } = {
       customerName: payload.customerName,
       orderType: payload.orderType ?? "DINE_IN",
+      priority: OrderPriority.MEDIUM,
       paymentMethod: payload.paymentMethod ?? PaymentMethod.CASH,
       totalPrice: Number(totalPrice.toFixed(2)),
       status: OrderStatus.PENDING,
     };
+    if (typeof payload.priority === "string") {
+      const proposedPriority = payload.priority.toUpperCase();
+      if (Object.values(OrderPriority).includes(proposedPriority as OrderPriority)) {
+        orderPayload.priority = proposedPriority as OrderPriority;
+      }
+    }
     if (payload.phone) orderPayload.phone = payload.phone;
     if (payload.email) orderPayload.email = payload.email;
     if (userId) orderPayload.userId = userId;
@@ -182,6 +191,15 @@ export class OrderService {
       return null;
     }
     order.status = status;
+    return this.ordersRepository.saveOrder(order);
+  }
+
+  async updatePriority(id: string, priority: OrderPriority) {
+    const order = await this.ordersRepository.findOrderById(id);
+    if (!order) {
+      return null;
+    }
+    order.priority = priority;
     return this.ordersRepository.saveOrder(order);
   }
 }

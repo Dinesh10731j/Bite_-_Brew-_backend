@@ -10,5 +10,6 @@ router.post("/", invalidateCacheByNamespace(["orders", "dashboard", "analytics",
 router.get("/", jwtVerify, roleCheck(["admin", "manager"]), cacheGet({ namespace: "orders", ttlSeconds: 90 }), OrdersController.list);
 router.get("/:id", jwtVerify, cacheGet({ namespace: "orders", ttlSeconds: 90 }), OrdersController.getById);
 router.patch("/:id/status", jwtVerify, roleCheck(["admin", "manager"]), invalidateCacheByNamespace(["orders", "dashboard", "analytics", "reports"]), OrdersController.updateStatus);
+router.patch("/:id/priority", jwtVerify, roleCheck(["admin", "manager"]), invalidateCacheByNamespace(["orders", "dashboard", "analytics", "reports"]), OrdersController.updatePriority);
 
 export default router;

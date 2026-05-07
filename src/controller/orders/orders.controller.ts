@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { HTTP_STATUS } from "../../constant/statusCode.interface";
 import { Message } from "../../constant/message.interface";
-import { NotificationPriority, NotificationType, OrderStatus, PaymentMethod } from "../../constant/enum.constant";
+import { NotificationPriority, NotificationType, OrderPriority, OrderStatus, PaymentMethod } from "../../constant/enum.constant";
 import { OrdersRepository } from "../../repository/orders/orders.repository";
 import { NotificationRepository } from "../../repository/notification/notification.repository";
 import { OrderService } from "../../service/orders/order.service";
@@ -157,6 +157,25 @@ export class OrdersController {
       }
 
       const data = await orderService.updateStatus(id, status as OrderStatus);
+      if (!data) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({ message: Message.NOT_FOUND });
+      }
+      return res.status(HTTP_STATUS.OK).json({ message: Message.UPDATED_SUCCESS, data });
+    } catch (_error) {
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+    }
+  }
+
+  static async updatePriority(req: Request, res: Response) {
+    try {
+      const id = req.params.id;
+      if (!id) return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: Message.BAD_REQUEST });
+      const priority = String(req.body?.priority || "").toUpperCase();
+      if (!Object.values(OrderPriority).includes(priority as OrderPriority)) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: Message.BAD_REQUEST });
+      }
+
+      const data = await orderService.updatePriority(id, priority as OrderPriority);
       if (!data) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({ message: Message.NOT_FOUND });
       }

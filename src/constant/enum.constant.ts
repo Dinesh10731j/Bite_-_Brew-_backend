@@ -25,6 +25,12 @@ export enum OrderType {
   DELIVERY = 'DELIVERY',
 }
 
+export enum OrderPriority {
+  HIGH = 'HIGH',
+  MEDIUM = 'MEDIUM',
+  LOW = 'LOW',
+}
+
 export enum NotificationType {
   ORDER = 'ORDER',
   MESSAGE = 'MESSAGE',

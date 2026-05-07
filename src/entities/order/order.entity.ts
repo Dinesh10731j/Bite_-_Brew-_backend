@@ -1,6 +1,6 @@
 
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { OrderStatus, PaymentMethod } from "../../constant/enum.constant";
+import { OrderStatus, OrderPriority, PaymentMethod } from "../../constant/enum.constant";
 import { MenuItem } from "../menu/menu.entity";
 import { User } from "../user/user.entity";
 
@@ -41,6 +41,10 @@ export class Order {
   @Index()
   @Column({ type: "enum", enum: OrderStatus, default: OrderStatus.PENDING })
   status!: OrderStatus;
+
+  @Index()
+  @Column({ type: "enum", enum: OrderPriority, default: OrderPriority.MEDIUM })
+  priority!: OrderPriority;
 
   @Column({ nullable: true })
   tableNumber?: string;

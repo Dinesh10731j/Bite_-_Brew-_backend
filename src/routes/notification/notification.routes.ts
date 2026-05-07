@@ -10,6 +10,7 @@ router.post("/", jwtVerify, roleCheck(["admin", "manager"]), invalidateCacheByNa
 router.get("/", jwtVerify, cacheGet({ namespace: "notifications", ttlSeconds: 60 }), NotificationsController.list);
 router.patch("/:id/read", jwtVerify, invalidateCacheByNamespace(["notifications", "dashboard"]), NotificationsController.markRead);
 router.patch("/read-all", jwtVerify, invalidateCacheByNamespace(["notifications", "dashboard"]), NotificationsController.markAllRead);
+router.patch("/:id", jwtVerify, roleCheck(["admin", "manager"]), invalidateCacheByNamespace(["notifications", "dashboard"]), NotificationsController.update);
 router.delete("/:id", jwtVerify, roleCheck(["admin", "manager"]), invalidateCacheByNamespace(["notifications", "dashboard"]), NotificationsController.delete);
 
 export default router;

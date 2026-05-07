@@ -18,7 +18,8 @@ export class ActivityLogsRepository {
     const canViewAll = role === UserRole.ADMIN || role === UserRole.MANAGER;
     const effectiveUserId = canViewAll ? userId : currentUserId;
 
-    const visitQb = this.visitRepo.createQueryBuilder("visit");
+    const visitQb = this.visitRepo.createQueryBuilder("visit")
+      .leftJoinAndSelect("visit.user", "user");
     if (effectiveUserId) {
       visitQb.andWhere("visit.userId = :userId", { userId: effectiveUserId });
     }
@@ -31,7 +32,8 @@ export class ActivityLogsRepository {
     let adminLogs: AdminLog[] = [];
     let adminTotal = 0;
     if (canViewAll) {
-      const adminQb = this.adminRepo.createQueryBuilder("adminLog");
+      const adminQb = this.adminRepo.createQueryBuilder("adminLog")
+        .leftJoinAndSelect("adminLog.admin", "admin");
       if (userId) {
         adminQb.andWhere("adminLog.adminId = :adminId", { adminId: userId });
       }

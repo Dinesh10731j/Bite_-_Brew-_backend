@@ -7,6 +7,24 @@ import { ActivityLogsService } from "../../service/activityLogs/activityLogs.ser
 
 const activityLogsService = new ActivityLogsService(new ActivityLogsRepository());
 
+type ActivityLogResponse = {
+  id: string;
+  type: "visit" | "admin_action";
+  userId?: string;
+  userName?: string;
+  action?: string;
+  details?: string;
+  ip?: string;
+  country?: string;
+  city?: string;
+  device?: string;
+  browser?: string;
+  os?: string;
+  referrer?: string;
+  sessionId?: string;
+  timestamp: Date;
+};
+
 export class ActivityLogsController {
   static async list(req: Request, res: Response) {
     try {

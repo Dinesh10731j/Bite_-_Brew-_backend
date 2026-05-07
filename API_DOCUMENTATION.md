@@ -201,6 +201,13 @@ Short explanation: Update order status.
   - `status` (required; `pending|confirmed|preparing|ready|completed|cancelled`)
 - Response: `200` updated, `400` invalid status, `404` not found
 
+### `PATCH /orders/:id/priority`
+Short explanation: Update order priority so UI can show the order with different color urgency.
+- Auth: Yes (`admin`, `manager`)
+- Body:
+  - `priority` (required; `HIGH|MEDIUM|LOW`)
+- Response: `200` updated, `400` invalid priority, `404` not found
+
 ## Messages
 
 ### `POST /messages`
@@ -324,6 +331,17 @@ Short explanation: Mark all notifications as read for one user.
 - Body:
   - `userId` (optional; falls back to authenticated user id)
 - Response: `200` updated, `400` bad request
+
+### `PATCH /notifications/:id`
+Short explanation: Update notification fields.
+- Auth: Yes (`admin`, `manager`)
+- Body:
+  - `content` (optional)
+  - `type` (optional; `ORDER|MESSAGE|SYSTEM`)
+  - `priority` (optional; `HIGH|MEDIUM|LOW`)
+  - `actionLink` (optional)
+  - `isRead` (optional boolean)
+- Response: `200` updated, `400` invalid payload, `404` not found
 
 ### `DELETE /notifications/:id`
 Short explanation: Delete one notification.
