@@ -81,6 +81,31 @@ export class AuthController {
       .json({ message: Message.LOGOUT_SUCCESS });
   }
 
+  static async refreshToken(req: Request, res: Response) {
+    try {
+      const refreshToken = (req.cookies?.refresh_token as string | undefined) || (req.body?.refresh_token as string | undefined);
+      if (!refreshToken) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: Message.UNAUTHORIZED });
+      }
+
+      const { access_token, refresh_token } = await authService.refreshAccessToken(refreshToken);
+
+      return res
+        .cookie("access_token", access_token, {
+          ...AuthController.authCookieOptions,
+          maxAge: 15 * 60 * 1000,
+        })
+        .cookie("refresh_token", refresh_token, {
+          ...AuthController.authCookieOptions,
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        })
+        .status(HTTP_STATUS.OK)
+        .json({ message: Message.SUCCESS });
+    } catch (_err: unknown) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: Message.UNAUTHORIZED });
+    }
+  }
+
   static async forgotPassword(req: Request, res: Response) {
     try {
       const dto = plainToInstance(ForgotPasswordDTO, req.body) as ForgotPasswordDTO;

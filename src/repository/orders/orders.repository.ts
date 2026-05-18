@@ -43,4 +43,9 @@ export class OrdersRepository {
   saveOrder(order: Order) {
     return this.orderRepo.save(order);
   }
+
+  async deleteOrderById(id: string): Promise<boolean> {
+    const result = await this.orderRepo.delete({ id });
+    return Boolean(result.affected && result.affected > 0);
+  }
 }

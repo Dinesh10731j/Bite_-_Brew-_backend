@@ -47,6 +47,15 @@ Short explanation: Logout user by clearing auth cookies.
 - Response:
   - `200` logout success
 
+### `POST /auth/refresh-token`
+Short explanation: Issue new access/refresh tokens using a valid refresh token.
+- Auth: No
+- Cookie/Body:
+  - `refresh_token` (required; read from `refresh_token` cookie, or request body fallback)
+- Response:
+  - `200` tokens refreshed (new `access_token` and `refresh_token` cookies are set)
+  - `401` unauthorized (missing/invalid/expired refresh token)
+
 ### `POST /auth/forgot-password`
 Short explanation: Send password reset email with reset token.
 - Auth: No
@@ -207,6 +216,11 @@ Short explanation: Update order priority so UI can show the order with different
 - Body:
   - `priority` (required; `HIGH|MEDIUM|LOW`)
 - Response: `200` updated, `400` invalid priority, `404` not found
+
+### `DELETE /orders/:id`
+Short explanation: Delete an order by ID.
+- Auth: Yes (`admin`, `manager`)
+- Response: `200` deleted, `404` not found
 
 ## Messages
 

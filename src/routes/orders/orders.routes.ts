@@ -11,5 +11,6 @@ router.get("/", jwtVerify, roleCheck(["admin", "manager"]), cacheGet({ namespace
 router.get("/:id", jwtVerify, cacheGet({ namespace: "orders", ttlSeconds: 90 }), OrdersController.getById);
 router.patch("/:id/status", jwtVerify, roleCheck(["admin", "manager"]), invalidateCacheByNamespace(["orders", "dashboard", "analytics", "reports"]), OrdersController.updateStatus);
 router.patch("/:id/priority", jwtVerify, roleCheck(["admin", "manager"]), invalidateCacheByNamespace(["orders", "dashboard", "analytics", "reports"]), OrdersController.updatePriority);
+router.delete("/:id", jwtVerify, roleCheck(["admin", "manager"]), invalidateCacheByNamespace(["orders", "dashboard", "analytics", "reports"]), OrdersController.delete);
 
 export default router;

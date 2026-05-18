@@ -75,6 +75,28 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
+  async refreshAccessToken(refreshToken: string) {
+    const decoded = jwt.verify(refreshToken, REFRESH_SECRET as jwt.Secret) as { userId: string };
+    const user = await this.authRepository.findById(decoded.userId);
+    if (!user) {
+      throw new Error(Message.UNAUTHORIZED);
+    }
+
+    const access_token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      ACCESS_SECRET as jwt.Secret,
+      { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions
+    );
+
+    const refresh_token = jwt.sign(
+      { userId: user.id },
+      REFRESH_SECRET as jwt.Secret,
+      { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions
+    );
+
+    return { access_token, refresh_token };
+  }
+
   async forgotPassword(email: string): Promise<ServiceResult<null>> {
     const user = await this.authRepository.findByEmail(email);
     if (!user) {

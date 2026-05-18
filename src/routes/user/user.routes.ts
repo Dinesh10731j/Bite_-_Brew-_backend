@@ -10,6 +10,7 @@ const router = Router();
 router.post("/auth/signup", AuthController.signup);
 router.post("/auth/signin", AuthController.signin);
 router.post("/auth/logout", AuthController.logout);
+router.post("/auth/refresh-token", AuthController.refreshToken);
 router.post("/auth/forgot-password", AuthController.forgotPassword);
 router.post("/auth/reset-password", AuthController.resetPassword);
 

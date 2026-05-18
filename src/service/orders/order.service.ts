@@ -202,5 +202,8 @@ export class OrderService {
     order.priority = priority;
     return this.ordersRepository.saveOrder(order);
   }
-}
 
+  deleteOrderById(id: string) {
+    return this.ordersRepository.deleteOrderById(id);
+  }
+}

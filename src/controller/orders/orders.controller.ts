@@ -184,4 +184,20 @@ export class OrdersController {
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
     }
   }
+
+  static async delete(req: Request, res: Response) {
+    try {
+      const id = req.params.id;
+      if (!id) return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: Message.BAD_REQUEST });
+
+      const deleted = await orderService.deleteOrderById(id);
+      if (!deleted) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({ message: Message.NOT_FOUND });
+      }
+
+      return res.status(HTTP_STATUS.OK).json({ message: Message.DELETED_SUCCESS });
+    } catch (_error) {
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+    }
+  }
 }
