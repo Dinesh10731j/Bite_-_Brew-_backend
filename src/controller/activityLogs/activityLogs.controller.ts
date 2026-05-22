@@ -9,11 +9,13 @@ const activityLogsService = new ActivityLogsService(new ActivityLogsRepository()
 
 type ActivityLogResponse = {
   id: string;
-  type: "visit" | "admin_action";
+  type: "visit" | "order" | "admin_action";
   userId?: string;
   userName?: string;
   action?: string;
   details?: string;
+  orderStatus?: string;
+  orderTotalPrice?: number;
   ip?: string;
   country?: string;
   city?: string;
@@ -42,4 +44,3 @@ export class ActivityLogsController {
     }
   }
 }
-

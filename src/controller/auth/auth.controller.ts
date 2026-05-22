@@ -7,6 +7,9 @@ import { validate } from "class-validator";
 import { HTTP_STATUS } from "../../constant/statusCode.interface";
 import { Message } from "../../constant/message.interface";
 import { ServiceResult } from "../../types/service_result";
+import { UserRole } from "../../constant/enum.constant";
+import { AdminLog } from "../../entities/auth/auth.entity";
+import { AppDataSource } from "../../configs/psqlDb.config";
 
 // Initialize AuthService
 const authRepo = new AuthRepository();
@@ -52,7 +55,17 @@ export class AuthController {
       const errors = await validate(dto);
       if (errors.length > 0) return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
 
-      const { access_token, refresh_token } = await authService.signin(dto);
+      const { access_token, refresh_token, user } = await authService.signin(dto);
+
+      if (user.role === UserRole.ADMIN || user.role === UserRole.MANAGER) {
+        const rawIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip;
+        const ip = (rawIp || "").replace("::ffff:", "");
+        const log = new AdminLog();
+        log.adminId = user.id;
+        log.action = "LOGIN_SUCCESS";
+        log.details = `IP: ${ip || "unknown"}, UA: ${req.get("User-Agent") || "unknown"}`;
+        await AppDataSource.manager.save(log);
+      }
 
       res
         .cookie("access_token", access_token, {

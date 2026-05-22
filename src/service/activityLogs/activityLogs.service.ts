@@ -4,11 +4,13 @@ import { buildPaginationMeta, parsePagination } from "../../utils/helpers/pagina
 
 type ActivityLogItem = {
   id: string;
-  type: "visit" | "admin_action";
+  type: "visit" | "order" | "admin_action";
   userId?: string;
   userName?: string;
   action?: string;
   details?: string;
+  orderStatus?: string;
+  orderTotalPrice?: number;
   ip?: string;
   country?: string;
   city?: string;
@@ -27,7 +29,7 @@ export class ActivityLogsService {
     const { page, limit } = parsePagination(query.page, query.limit, 20);
     const userId = typeof query.userId === "string" ? query.userId : undefined;
 
-    const { visitLogs, visitTotal, adminLogs, adminTotal } = await this.repository.list({
+    const { visitLogs, visitTotal, orderLogs, orderTotal, adminLogs, adminTotal } = await this.repository.list({
       role: currentUser.role,
       currentUserId: currentUser.id,
       page,
@@ -61,12 +63,24 @@ export class ActivityLogsService {
       timestamp: log.timestamp,
     }));
 
-    const merged = [...visitItems, ...adminItems].sort(
+    const orderItems: ActivityLogItem[] = orderLogs.map((order) => ({
+      id: order.id,
+      type: "order",
+      userId: order.userId,
+      userName: order.user?.name || order.customerName || "Guest",
+      action: "ORDER_UPDATED",
+      details: `Order for ${order.customerName}`,
+      orderStatus: order.status,
+      orderTotalPrice: Number(order.totalPrice),
+      timestamp: order.updatedAt,
+    }));
+
+    const merged = [...visitItems, ...orderItems, ...adminItems].sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
     const skip = (page - 1) * limit;
     const data = merged.slice(skip, skip + limit);
-    const total = visitTotal + adminTotal;
+    const total = visitTotal + orderTotal + adminTotal;
 
     return {
       data,
@@ -74,4 +88,3 @@ export class ActivityLogsService {
     };
   }
 }
-

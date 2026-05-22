@@ -72,7 +72,11 @@ export class AuthService {
       { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions
     );
 
-    return { access_token, refresh_token };
+    return {
+      access_token,
+      refresh_token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    };
   }
 
   async refreshAccessToken(refreshToken: string) {

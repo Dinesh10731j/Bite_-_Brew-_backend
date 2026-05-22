@@ -2,10 +2,12 @@ import { AppDataSource } from "../../configs/psqlDb.config";
 import { UserRole } from "../../constant/enum.constant";
 import { VisitLog } from "../../entities/analytics/analytics.entity";
 import { AdminLog } from "../../entities/auth/auth.entity";
+import { Order } from "../../entities/order/order.entity";
 
 export class ActivityLogsRepository {
   private readonly visitRepo = AppDataSource.getRepository(VisitLog);
   private readonly adminRepo = AppDataSource.getRepository(AdminLog);
+  private readonly orderRepo = AppDataSource.getRepository(Order);
 
   async list(params: {
     role: UserRole;
@@ -29,6 +31,17 @@ export class ActivityLogsRepository {
       .take(limit * page)
       .getManyAndCount();
 
+    const orderQb = this.orderRepo.createQueryBuilder("order")
+      .leftJoinAndSelect("order.user", "user");
+    if (effectiveUserId) {
+      orderQb.andWhere("order.userId = :userId", { userId: effectiveUserId });
+    }
+
+    const [orderLogs, orderTotal] = await orderQb
+      .orderBy("order.updatedAt", "DESC")
+      .take(limit * page)
+      .getManyAndCount();
+
     let adminLogs: AdminLog[] = [];
     let adminTotal = 0;
     if (canViewAll) {
@@ -45,7 +58,6 @@ export class ActivityLogsRepository {
       adminTotal = adminResult[1];
     }
 
-    return { visitLogs, visitTotal, adminLogs, adminTotal };
+    return { visitLogs, visitTotal, orderLogs, orderTotal, adminLogs, adminTotal };
   }
 }
-
