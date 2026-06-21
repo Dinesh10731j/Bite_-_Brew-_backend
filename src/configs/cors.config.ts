@@ -1,10 +1,8 @@
 import { CorsOptions } from 'cors';
 
 const DEFAULT_DEV_ORIGINS = [
-  'http://localhost:3001',
-  'http://localhost:3000',
-  'http://localhost:3002',
-  'http://localhost:3004',
+  'https://bitebrewdashboard.netlify.app',
+  "https://bitebrew.netlify.app"
 ];
 
 const normalizeOrigin = (origin: string): string => origin.trim().replace(/\/+$/, '');
