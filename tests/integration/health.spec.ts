@@ -1,8 +1,14 @@
 import request from 'supertest';
 import { createApp } from '../../src/configs/app';
+import { redisClient } from '../../src/configs/redis.config';
 
 describe('health endpoints', () => {
-  const { app } = createApp();
+  const { app, io } = createApp();
+
+  afterAll(() => {
+    io.close();
+    redisClient.disconnect();
+  });
 
   it('serves API health endpoint', async () => {
     const response = await request(app).get('/api/v1/bite-brew/health');

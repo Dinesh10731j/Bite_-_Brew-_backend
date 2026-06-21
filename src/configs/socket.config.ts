@@ -1,10 +1,13 @@
 import { Server, ServerOptions } from "socket.io";
 import http from "http";
-import { socketCorsOptions } from "./cors.config";
+import { isAllowedOrigin, socketCorsOptions } from "./cors.config";
 
 export const socketOptions: Partial<ServerOptions> = {
   cors: socketCorsOptions,
   transports: ["websocket", "polling"],
+  allowRequest: (req, callback) => {
+    callback(null, isAllowedOrigin(req.headers.origin));
+  },
 };
 
 export const setupSocket = (server: http.Server) => {

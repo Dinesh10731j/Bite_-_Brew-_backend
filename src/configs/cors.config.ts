@@ -1,8 +1,16 @@
 import { CorsOptions } from 'cors';
 
-const DEFAULT_DEV_ORIGINS = [
+const PUBLIC_ORIGINS = [
   'https://bitebrewdashboard.netlify.app',
-  "https://bitebrew.netlify.app"
+  'https://bitebrew.netlify.app',
+];
+
+const DEFAULT_DEV_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:3004',
+  'http://127.0.0.1:3000',
 ];
 
 const normalizeOrigin = (origin: string): string => origin.trim().replace(/\/+$/, '');
@@ -28,16 +36,19 @@ const configuredOrigins = [
   .map(normalizeOrigin);
 
 const allowedOrigins = new Set<string>([
+  ...PUBLIC_ORIGINS.map(normalizeOrigin),
   ...configuredOrigins,
   ...(isProduction ? [] : DEFAULT_DEV_ORIGINS),
 ]);
 
-const isAllowedOrigin = (origin?: string): boolean => {
-  if (!origin) {
+export const isAllowedOrigin = (origin?: string | string[]): boolean => {
+  const requestOrigin = Array.isArray(origin) ? origin[0] : origin;
+
+  if (!requestOrigin) {
     return true;
   }
 
-  return allowedOrigins.has(normalizeOrigin(origin));
+  return allowedOrigins.has(normalizeOrigin(requestOrigin));
 };
 
 const originHandler: CorsOptions['origin'] = (origin, callback) => {

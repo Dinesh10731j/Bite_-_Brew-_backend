@@ -53,9 +53,9 @@ const createApp = () => {
 
   // Create HTTP server (don't listen)
   const server = http.createServer(app);
-  setupSocket(server);
+  const io = setupSocket(server);
 
-  return { app, server };
+  return { app, server, io };
 };
 
 export { createApp };
