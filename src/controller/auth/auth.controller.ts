@@ -16,12 +16,23 @@ const authRepo = new AuthRepository();
 const authService = new AuthService(authRepo);
 
 export class AuthController {
-  private static readonly authCookieOptions = {
-    httpOnly: true as const,
-    secure: false,
-    sameSite: "strict" as const,
-    path: "/",
-  };
+  static getAuthCookieOptions(req: Pick<Request, "secure" | "headers">) {
+    const forwardedProtoHeader = req.headers["x-forwarded-proto"];
+    const forwardedProto = Array.isArray(forwardedProtoHeader)
+      ? forwardedProtoHeader[0]
+      : forwardedProtoHeader;
+    const isHttpsRequest = Boolean(
+      req.secure || forwardedProto === "https" || forwardedProto?.includes("https"),
+    );
+    const sameSite: "none" | "lax" = isHttpsRequest ? "none" : "lax";
+
+    return {
+      httpOnly: true as const,
+      secure: isHttpsRequest,
+      sameSite,
+      path: "/" as const,
+    };
+  }
 
   static async signup(req: Request, res: Response) {
     try {
@@ -30,14 +41,15 @@ export class AuthController {
       if (errors.length > 0) return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
 
       const {access_token, refresh_token } = await authService.signup(dto);
+      const authCookieOptions = AuthController.getAuthCookieOptions(req);
 
       res
         .cookie("access_token", access_token, {
-          ...AuthController.authCookieOptions,
+          ...authCookieOptions,
           maxAge: 15 * 60 * 1000,
         })
         .cookie("refresh_token", refresh_token, {
-          ...AuthController.authCookieOptions,
+          ...authCookieOptions,
           maxAge: 7 * 24 * 60 * 60 * 1000,
         })
         .status(HTTP_STATUS.CREATED)
@@ -56,6 +68,7 @@ export class AuthController {
       if (errors.length > 0) return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
 
       const { access_token, refresh_token, user } = await authService.signin(dto);
+      const authCookieOptions = AuthController.getAuthCookieOptions(req);
 
       if (user.role === UserRole.ADMIN || user.role === UserRole.MANAGER) {
         const rawIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip;
@@ -69,11 +82,11 @@ export class AuthController {
 
       res
         .cookie("access_token", access_token, {
-          ...AuthController.authCookieOptions,
+          ...authCookieOptions,
           maxAge: 15 * 60 * 1000,
         })
         .cookie("refresh_token", refresh_token, {
-          ...AuthController.authCookieOptions,
+          ...authCookieOptions,
           maxAge: 7 * 24 * 60 * 60 * 1000,
         })
         .status(HTTP_STATUS.OK)
@@ -83,13 +96,15 @@ export class AuthController {
     }
   }
 
-  static async logout(_req: Request, res: Response) {
+  static async logout(req: Request, res: Response) {
+    const authCookieOptions = AuthController.getAuthCookieOptions(req);
+
     return res
-      .clearCookie("access_token", AuthController.authCookieOptions)
-      .clearCookie("accessToken", AuthController.authCookieOptions)
-      .clearCookie("token", AuthController.authCookieOptions)
-      .clearCookie("refresh_token", AuthController.authCookieOptions)
-      .clearCookie("refreshToken", AuthController.authCookieOptions)
+      .clearCookie("access_token", authCookieOptions)
+      .clearCookie("accessToken", authCookieOptions)
+      .clearCookie("token", authCookieOptions)
+      .clearCookie("refresh_token", authCookieOptions)
+      .clearCookie("refreshToken", authCookieOptions)
       .status(HTTP_STATUS.OK)
       .json({ message: Message.LOGOUT_SUCCESS });
   }
@@ -102,14 +117,15 @@ export class AuthController {
       }
 
       const { access_token, refresh_token } = await authService.refreshAccessToken(refreshToken);
+      const authCookieOptions = AuthController.getAuthCookieOptions(req);
 
       return res
         .cookie("access_token", access_token, {
-          ...AuthController.authCookieOptions,
+          ...authCookieOptions,
           maxAge: 15 * 60 * 1000,
         })
         .cookie("refresh_token", refresh_token, {
-          ...AuthController.authCookieOptions,
+          ...authCookieOptions,
           maxAge: 7 * 24 * 60 * 60 * 1000,
         })
         .status(HTTP_STATUS.OK)

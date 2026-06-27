@@ -15,6 +15,8 @@ import { setupSocket } from "./socket.config";
 const createApp = () => {
   const app = express();
 
+  app.set('trust proxy', 1);
+
   // Middleware stack as per flow
 
   // CORS
