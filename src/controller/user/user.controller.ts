@@ -3,8 +3,10 @@ import { UserService } from '../../service/user/user.service';
 import { MESSAGES } from '../../constant/message.interface';
 import { HTTP_STATUS } from '../../constant/statusCode.interface';
 import { UserRole } from '../../constant/enum.constant';
+import { UploadService } from '../../service/upload/upload.service';
 
 const userService = new UserService();
+const uploadService = new UploadService();
 
 export class UserController {
   static async findAll(req: Request, res: Response) {
@@ -26,6 +28,98 @@ export class UserController {
         return res.status(HTTP_STATUS.NOT_FOUND).json({ message: MESSAGES.USER_NOT_FOUND });
       }
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.SUCCESS, data: user });
+    } catch (_error) {
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+    }
+  }
+
+  static async listStaff(req: Request, res: Response) {
+    try {
+      const result = await userService.listStaff(req.query);
+      return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.SUCCESS, ...result });
+    } catch (_error) {
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+    }
+  }
+
+  static async createStaff(req: Request, res: Response) {
+    try {
+      const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+      const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+      if (!name || !email) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.BAD_REQUEST });
+      }
+
+      let image: string | undefined;
+      if (req.file) {
+        const uploadedImage = await uploadService.uploadImage(req.file, 'bite-brew/staff');
+        image = uploadedImage.url;
+      } else if (typeof req.body?.image === 'string' && req.body.image.trim()) {
+        image = req.body.image.trim();
+      }
+
+      const data = await userService.createStaff({ name, email, password: typeof req.body?.password === 'string' ? req.body.password : undefined, image });
+      if (!data) {
+        return res.status(HTTP_STATUS.CONFLICT).json({ message: MESSAGES.USER_ALREADY_EXISTS });
+      }
+
+      return res.status(HTTP_STATUS.CREATED).json({ message: MESSAGES.CREATED_SUCCESS, data });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Cloudinary credentials are not configured')) {
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: error.message });
+      }
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+    }
+  }
+
+  static async updateStaff(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.BAD_REQUEST });
+      }
+
+      let image: string | undefined;
+      if (req.file) {
+        const uploadedImage = await uploadService.uploadImage(req.file, 'bite-brew/staff');
+        image = uploadedImage.url;
+      } else if (req.body?.image !== undefined) {
+        image = typeof req.body.image === 'string' ? req.body.image.trim() || undefined : undefined;
+      }
+
+      const data = await userService.updateStaff(id, {
+        name: typeof req.body?.name === 'string' ? req.body.name.trim() : undefined,
+        email: typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : undefined,
+        password: typeof req.body?.password === 'string' ? req.body.password : undefined,
+        image,
+      });
+
+      if (!data) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({ message: MESSAGES.USER_NOT_FOUND });
+      }
+
+      return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.UPDATED_SUCCESS, data });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Cloudinary credentials are not configured')) {
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: error.message });
+      }
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+    }
+  }
+
+  static async deleteStaff(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.BAD_REQUEST });
+      }
+
+      const deleted = await userService.deleteStaff(id);
+      if (!deleted) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({ message: MESSAGES.USER_NOT_FOUND });
+      }
+
+      return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.DELETED_SUCCESS });
     } catch (_error) {
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }

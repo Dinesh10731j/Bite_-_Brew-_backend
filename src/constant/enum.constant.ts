@@ -2,6 +2,7 @@ export enum UserRole {
   ADMIN = 'admin',
   USER = 'user',
   MANAGER = 'manager',
+  STAFF = 'staff',
 }
 
 export enum OrderStatus {

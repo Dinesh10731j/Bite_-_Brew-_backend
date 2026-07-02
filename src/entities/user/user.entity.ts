@@ -21,6 +21,9 @@ export class User {
   role!: UserRole;
 
   @Column({ nullable: true })
+  image?: string;
+
+  @Column({ nullable: true })
   resetToken?: string;
 
   @Column({ type: "timestamp", nullable: true })
