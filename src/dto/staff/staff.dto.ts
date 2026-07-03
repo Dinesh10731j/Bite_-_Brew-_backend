@@ -1,5 +1,4 @@
-import { IsEmail, IsOptional, IsString, MinLength, IsNotEmpty, IsEnum } from "class-validator";
-import { UserRole } from "../../constant/enum.constant";
+import { IsEmail, IsOptional, IsString, IsNotEmpty } from "class-validator";
 
 export class CreateStaffDTO {
   @IsEmail()
@@ -7,16 +6,16 @@ export class CreateStaffDTO {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(6, { message: "Password must be at least 6 characters" })
-  password!: string;
-
-  @IsString()
-  @IsNotEmpty()
   name!: string;
 
   @IsOptional()
-  @IsEnum(UserRole)
-  role?: UserRole;
+  @IsString()
+  @IsNotEmpty()
+  image?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  role!: string;
 }
 
 export class UpdateStaffDTO {
@@ -32,10 +31,10 @@ export class UpdateStaffDTO {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  @MinLength(6, { message: "Password must be at least 6 characters" })
-  password?: string;
+  image?: string;
 
   @IsOptional()
-  @IsEnum(UserRole)
-  role?: UserRole;
+  @IsString()
+  @IsNotEmpty()
+  role?: string;
 }

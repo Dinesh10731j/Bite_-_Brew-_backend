@@ -1,17 +1,17 @@
 import { Request, Response } from "express";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
-import { UserService } from "../../service/user/user.service";
+import { StaffService } from "../../service/staff/staff.service";
 import { CreateStaffDTO, UpdateStaffDTO } from "../../dto/staff/staff.dto";
 import { HTTP_STATUS } from "../../constant/statusCode.interface";
 import { MESSAGES } from "../../constant/message.interface";
 
-const userService = new UserService();
+const staffService = new StaffService();
 
 export class StaffController {
   static async list(req: Request, res: Response) {
     try {
-      const result = await userService.listStaff(req.query);
+      const result = await staffService.listStaff(req.query);
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.SUCCESS, ...result });
     } catch (error) {
       console.error("Staff list failed:", error);
@@ -21,17 +21,17 @@ export class StaffController {
 
   static async create(req: Request, res: Response) {
     try {
-      const dto = plainToInstance(CreateStaffDTO, req.body);
+      const dto = plainToInstance(CreateStaffDTO, req.body ?? {});
       const errors = await validate(dto);
       if (errors.length > 0) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
       }
 
-      const staff = await userService.createStaff({
+      const staff = await staffService.createStaff({
         name: dto.name.trim(),
         email: dto.email.trim().toLowerCase(),
-        password: dto.password.trim(),
-        role: dto.role,
+        image: dto.image?.trim(),
+        role: dto.role.trim(),
       });
 
       if (!staff) {
@@ -48,7 +48,7 @@ export class StaffController {
   static async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const staff = await userService.getStaffById(id);
+      const staff = await staffService.getStaffById(id);
       if (!staff) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({ message: MESSAGES.USER_NOT_FOUND });
       }
@@ -62,19 +62,22 @@ export class StaffController {
   static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const dto = plainToInstance(UpdateStaffDTO, req.body);
+      const dto = plainToInstance(UpdateStaffDTO, req.body ?? {});
       const errors = await validate(dto);
       if (errors.length > 0) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
       }
 
-      const staff = await userService.updateStaff(id, {
+      const staff = await staffService.updateStaff(id, {
         name: dto.name?.trim(),
         email: dto.email?.trim().toLowerCase(),
-        password: dto.password?.trim(),
-        role: dto.role,
+        image: dto.image?.trim(),
+        role: dto.role?.trim(),
       });
 
+      if (staff === undefined) {
+        return res.status(HTTP_STATUS.CONFLICT).json({ message: MESSAGES.USER_ALREADY_EXISTS });
+      }
       if (!staff) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({ message: MESSAGES.USER_NOT_FOUND });
       }
@@ -89,7 +92,7 @@ export class StaffController {
   static async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const deleted = await userService.deleteStaff(id);
+      const deleted = await staffService.deleteStaff(id);
       if (!deleted) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({ message: MESSAGES.USER_NOT_FOUND });
       }
