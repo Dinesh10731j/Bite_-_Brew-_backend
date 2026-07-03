@@ -20,7 +20,7 @@ const cleanPass = (value?: string): string | undefined => {
 export const envConfig = {
   PORT: cleanEnv(process.env.PORT),
   DB_PASSWORD: cleanEnv(process.env.DB_PASSWORD),
- DB_URL: cleanEnv(process.env.DATABASE_URL),
+  DB_URL: cleanEnv(process.env.DATABASE_URL) ?? cleanEnv(process.env.DB_URL),
   DB_HOST: cleanEnv(process.env.DB_HOST),
   DB_TYPE: cleanEnv(process.env.DB_TYPE),
   DB_NAME: cleanEnv(process.env.DB_NAME),
