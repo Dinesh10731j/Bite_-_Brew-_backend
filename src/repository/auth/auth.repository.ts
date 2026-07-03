@@ -3,10 +3,11 @@ import { AppDataSource } from "../../configs/psqlDb.config";
 import { User } from "../../entities/user/user.entity";
 
 export class AuthRepository {
-  private readonly repo: Repository<User>;
-
-  constructor() {
-    this.repo = AppDataSource.getRepository(User);
+  private get repo(): Repository<User> {
+    if (!AppDataSource.isInitialized) {
+      throw new Error("Database not initialized");
+    }
+    return AppDataSource.getRepository(User);
   }
 
   findByEmail(email: string): Promise<User | null> {

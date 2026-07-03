@@ -6,6 +6,7 @@ import messageRoutes from "./message/message.routes";
 import newsletterRoutes from "./newsletter/newsletter.routes";
 import notificationRoutes from "./notification/notification.routes";
 import galleryRoutes from "./gallery/gallery.routes";
+import staffRoutes from "./staff/staff.routes";
 import dashboardRoutes from "./dashboard/dashboard.routes";
 import analyticsRoutes from "./analytics/analytics.routes";
 import reportsRoutes from "./reports/reports.routes";
@@ -16,6 +17,7 @@ const router = Router();
 
 router.get("/health", (_req, res) => res.status(200).json({ ok: true, service: "bite-brew-cafe-backend" }));
 router.use(userRoutes);
+router.use("/staff", staffRoutes);
 router.use("/menu", menuRoutes);
 router.use("/orders", ordersRoutes);
 router.use("/messages", messageRoutes);

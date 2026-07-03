@@ -14,7 +14,6 @@ export class UserService {
       name: user.name,
       email: user.email,
       role: user.role,
-      image: user.image,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -33,7 +32,6 @@ export class UserService {
       "user.name",
       "user.email",
       "user.role",
-      "user.image",
       "user.createdAt",
       "user.updatedAt",
     ]);
@@ -57,7 +55,6 @@ export class UserService {
       "user.name",
       "user.email",
       "user.role",
-      "user.image",
       "user.createdAt",
       "user.updatedAt",
     ]);
@@ -77,7 +74,7 @@ export class UserService {
   async getById(id: string) {
     const user = await this.userRepo.findOne({
       where: { id },
-      select: ["id", "name", "email", "role", "image", "createdAt", "updatedAt"],
+      select: ["id", "name", "email", "role", "createdAt", "updatedAt"],
     });
     return user ? this.sanitizeUser(user) : null;
   }
@@ -85,12 +82,12 @@ export class UserService {
   async getStaffById(id: string) {
     const user = await this.userRepo.findOne({
       where: { id, role: UserRole.STAFF },
-      select: ["id", "name", "email", "role", "image", "createdAt", "updatedAt"],
+      select: ["id", "name", "email", "role", "createdAt", "updatedAt"],
     });
     return user ? this.sanitizeUser(user) : null;
   }
 
-  async createStaff(payload: { name: string; email: string; password?: string; image?: string }) {
+  async createStaff(payload: { name: string; email: string; password?: string; role?: UserRole }) {
     const normalizedEmail = payload.email.trim().toLowerCase();
     const existing = await this.userRepo.findOne({ where: { email: normalizedEmail } });
     if (existing) {
@@ -103,8 +100,7 @@ export class UserService {
       name: payload.name.trim(),
       email: normalizedEmail,
       password,
-      role: UserRole.STAFF,
-      image: payload.image?.trim() || undefined,
+      role: payload.role ?? UserRole.STAFF,
     });
 
     const savedUser = await this.userRepo.save(user);
@@ -114,7 +110,7 @@ export class UserService {
     };
   }
 
-  async updateStaff(id: string, payload: { name?: string; email?: string; password?: string; image?: string }) {
+  async updateStaff(id: string, payload: { name?: string; email?: string; password?: string; role?: UserRole }) {
     const user = await this.userRepo.findOne({ where: { id, role: UserRole.STAFF } });
     if (!user) {
       return null;
@@ -134,8 +130,8 @@ export class UserService {
     if (payload.password !== undefined && payload.password.trim()) {
       user.password = await bcrypt.hash(payload.password.trim(), 10);
     }
-    if (payload.image !== undefined) {
-      user.image = payload.image.trim() || undefined;
+    if (payload.role !== undefined) {
+      user.role = payload.role;
     }
 
     await this.userRepo.save(user);

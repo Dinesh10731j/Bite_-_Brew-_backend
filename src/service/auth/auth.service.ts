@@ -19,15 +19,19 @@ export class AuthService {
   constructor(private readonly authRepository: AuthRepository) {}
 
   async signup(dto: SignUpDTO) {
-    const existing = await this.authRepository.findByEmail(dto.email);
+    const email = dto.email.trim().toLowerCase();
+    const password = dto.password.trim();
+    const name = dto.name.trim();
+
+    const existing = await this.authRepository.findByEmail(email);
     if (existing) {
       throw new Error(Message.USER_ALREADY_EXISTS);
     }
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await this.authRepository.createUser({
-      name: dto.name,
-      email: dto.email,
+      name,
+      email,
       password: hashedPassword,
       role: UserRole.USER,
     });
@@ -51,12 +55,15 @@ export class AuthService {
   }
 
   async signin(dto: SignInDTO) {
-    const user = await this.authRepository.findByEmail(dto.email);
+    const email = dto.email.trim().toLowerCase();
+    const password = dto.password.trim();
+
+    const user = await this.authRepository.findByEmail(email);
     if (!user) {
       throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
     }
 
-    const ok = await bcrypt.compare(dto.password, user.password);
+    const ok = await bcrypt.compare(password, user.password);
     if (!ok) {
       throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
     }
@@ -101,8 +108,9 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
-  async forgotPassword(email: string): Promise<ServiceResult<null>> {
-    const user = await this.authRepository.findByEmail(email);
+  async forgotPassword(email: string): Promise<ServiceResult<{ resetUrl?: string }>> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.authRepository.findByEmail(normalizedEmail);
     if (!user) {
       return { status: HTTP_STATUS.NOT_FOUND };
     }
@@ -117,40 +125,56 @@ export class AuthService {
     const appName = process.env.APP_NAME || "Bite Brew Cafe";
     const supportEmail = process.env.SUPPORT_EMAIL || process.env.SMTP_USER || "support@bitebrew.local";
 
-    await sendSmtpMail({
-      to: user.email,
-      subject: `${appName} Password Reset`,
-      html: buildResetPasswordTemplate({
-        name: user.name || "User",
-        resetUrl,
-        appName,
-        supportEmail,
-        expiresInMinutes: 60,
-      }),
-      text: buildResetPasswordTextTemplate({
-        name: user.name || "User",
-        resetUrl,
-        appName,
-        supportEmail,
-        expiresInMinutes: 60,
-      }),
-    });
+    try {
+      await sendSmtpMail({
+        to: user.email,
+        subject: `${appName} Password Reset`,
+        html: buildResetPasswordTemplate({
+          name: user.name || "User",
+          resetUrl,
+          appName,
+          supportEmail,
+          expiresInMinutes: 60,
+        }),
+        text: buildResetPasswordTextTemplate({
+          name: user.name || "User",
+          resetUrl,
+          appName,
+          supportEmail,
+          expiresInMinutes: 60,
+        }),
+      });
+    } catch (error) {
+      // Log the reset URL to help debugging when SMTP isn't configured or fails
+      console.error("Forgot password email delivery failed:", error);
+      console.error("Password reset URL (for debugging):", resetUrl);
+      return { status: HTTP_STATUS.INTERNAL_SERVER_ERROR, error: "Unable to deliver password reset email" };
+    }
 
-    return { status: HTTP_STATUS.OK };
+    // Include resetUrl in service result `data` so callers (in non-production) can expose it for debugging
+    return { status: HTTP_STATUS.OK, data: { resetUrl } };
   }
 
   async resetPassword(email: string, token: string, password: string): Promise<ServiceResult<null>> {
-    const user = await this.authRepository.findByEmail(email);
+    const normalizedEmail = email.trim().toLowerCase();
+    const cleanedToken = token.trim();
+    const cleanedPassword = password.trim();
+
+    const user = await this.authRepository.findByEmail(normalizedEmail);
     if (!user) {
       return { status: HTTP_STATUS.NOT_FOUND };
     }
 
-    const invalidToken = !user.resetToken || user.resetToken !== token || !user.resetTokenExpiry || user.resetTokenExpiry < new Date();
+    const invalidToken =
+      !user.resetToken ||
+      user.resetToken !== cleanedToken ||
+      !user.resetTokenExpiry ||
+      user.resetTokenExpiry < new Date();
     if (invalidToken) {
       return { status: HTTP_STATUS.BAD_REQUEST };
     }
 
-    user.password = await bcrypt.hash(password, 10);
+    user.password = await bcrypt.hash(cleanedPassword, 10);
     delete user.resetToken;
     delete user.resetTokenExpiry;
     await this.authRepository.saveUser(user);

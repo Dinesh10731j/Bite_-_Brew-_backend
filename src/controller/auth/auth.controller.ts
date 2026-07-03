@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { AuthService } from "../../service/auth/auth.service";
 import { AuthRepository } from "../../repository/auth/auth.repository";
+import bcrypt from "bcryptjs";
 import { ForgotPasswordDTO, ResetPasswordDTO, SignInDTO, SignUpDTO } from "../../dto/user/user.dto";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
@@ -11,11 +12,11 @@ import { UserRole } from "../../constant/enum.constant";
 import { AdminLog } from "../../entities/auth/auth.entity";
 import { AppDataSource } from "../../configs/psqlDb.config";
 
-// Initialize AuthService
-const authRepo = new AuthRepository();
-const authService = new AuthService(authRepo);
-
 export class AuthController {
+  private static createAuthService() {
+    return new AuthService(new AuthRepository());
+  }
+
   static getAuthCookieOptions(req: Pick<Request, "secure" | "headers">) {
     const forwardedProtoHeader = req.headers["x-forwarded-proto"];
     const forwardedProto = Array.isArray(forwardedProtoHeader)
@@ -40,10 +41,11 @@ export class AuthController {
       const errors = await validate(dto);
       if (errors.length > 0) return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
 
-      const {access_token, refresh_token } = await authService.signup(dto);
+      const authService = AuthController.createAuthService();
+      const { access_token, refresh_token } = await authService.signup(dto);
       const authCookieOptions = AuthController.getAuthCookieOptions(req);
 
-      res
+      return res
         .cookie("access_token", access_token, {
           ...authCookieOptions,
           maxAge: 15 * 60 * 1000,
@@ -55,9 +57,15 @@ export class AuthController {
         .status(HTTP_STATUS.CREATED)
         .json({ message: Message.USER_CREATED_SUCCESS });
     } catch (err: unknown) {
+      console.error("Signup failed:", err);
       const e = err as { message?: string };
-      const msg = e.message === Message.USER_ALREADY_EXISTS ? Message.USER_ALREADY_EXISTS : Message.INVALID_REQUEST;
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: msg });
+      if (e.message === Message.USER_ALREADY_EXISTS) {
+        return res.status(HTTP_STATUS.CONFLICT).json({ message: Message.USER_ALREADY_EXISTS });
+      }
+      if (e.message === "Database not initialized") {
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Server not ready. Please try again shortly." });
+      }
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: e.message || Message.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -66,6 +74,23 @@ export class AuthController {
       const dto = plainToInstance(SignInDTO, req.body) as SignInDTO;
       const errors = await validate(dto);
       if (errors.length > 0) return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
+      const authService = AuthController.createAuthService();
+
+      // normalize inputs and pre-check so we can log helpful diagnostics
+      const email = dto.email.trim().toLowerCase();
+      const password = dto.password.trim();
+      const repo = new AuthRepository();
+      const dbUser = await repo.findByEmail(email);
+      if (!dbUser) {
+        console.warn(`Signin failed: user not found for email=${email}`);
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: Message.INVALID_EMAIL_OR_PASSWORD });
+      }
+
+      const ok = await bcrypt.compare(password, dbUser.password);
+      if (!ok) {
+        console.warn(`Signin failed: invalid password for userId=${dbUser.id}`);
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: Message.INVALID_EMAIL_OR_PASSWORD });
+      }
 
       const { access_token, refresh_token, user } = await authService.signin(dto);
       const authCookieOptions = AuthController.getAuthCookieOptions(req);
@@ -80,7 +105,7 @@ export class AuthController {
         await AppDataSource.manager.save(log);
       }
 
-      res
+      return res
         .cookie("access_token", access_token, {
           ...authCookieOptions,
           maxAge: 15 * 60 * 1000,
@@ -91,7 +116,8 @@ export class AuthController {
         })
         .status(HTTP_STATUS.OK)
         .json({ message: Message.LOGIN_SUCCESS });
-    } catch (_err: unknown) {
+    } catch (err: unknown) {
+      console.error("Signin failed:", err);
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: Message.INVALID_EMAIL_OR_PASSWORD });
     }
   }
@@ -116,6 +142,7 @@ export class AuthController {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: Message.UNAUTHORIZED });
       }
 
+      const authService = AuthController.createAuthService();
       const { access_token, refresh_token } = await authService.refreshAccessToken(refreshToken);
       const authCookieOptions = AuthController.getAuthCookieOptions(req);
 
@@ -141,14 +168,20 @@ export class AuthController {
       const errors = await validate(dto);
       if (errors.length > 0) return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
 
-      const result: ServiceResult<null> = await authService.forgotPassword(dto.email);
+      const authService = AuthController.createAuthService();
+      const result: ServiceResult<{ resetUrl?: string } | null> = await authService.forgotPassword(dto.email);
       if (result.status === HTTP_STATUS.NOT_FOUND) {
         return res.status(result.status).json({ message: Message.USER_NOT_FOUND });
       }
       if (result.status !== HTTP_STATUS.OK) {
         return res.status(result.status).json({ message: Message.INTERNAL_SERVER_ERROR });
       }
-      return res.status(result.status).json({ message: Message.RESET_EMAIL_SENT });
+      // In development, include the reset URL to help debugging when SMTP is not available
+      const responseBody: any = { message: Message.RESET_EMAIL_SENT };
+      if (process.env.NODE_ENV !== "production" && result.data?.resetUrl) {
+        responseBody.debug = { resetUrl: result.data.resetUrl };
+      }
+      return res.status(result.status).json(responseBody);
     } catch (_err: unknown) {
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
     }
@@ -163,6 +196,7 @@ export class AuthController {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: Message.INVALID_REQUEST });
       }
 
+      const authService = AuthController.createAuthService();
       const result: ServiceResult<null> = await authService.resetPassword(dto.email, dto.token, dto.password);
       if (result.status === HTTP_STATUS.NOT_FOUND) {
         return res.status(result.status).json({ message: Message.USER_NOT_FOUND });
