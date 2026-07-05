@@ -2,11 +2,13 @@ import { Request, Response } from "express";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import { StaffService } from "../../service/staff/staff.service";
+import { UploadService } from "../../service/upload/upload.service";
 import { CreateStaffDTO, UpdateStaffDTO } from "../../dto/staff/staff.dto";
 import { HTTP_STATUS } from "../../constant/statusCode.interface";
 import { MESSAGES } from "../../constant/message.interface";
 
 const staffService = new StaffService();
+const uploadService = new UploadService();
 
 export class StaffController {
   static async list(req: Request, res: Response) {
@@ -27,10 +29,20 @@ export class StaffController {
         return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
       }
 
+      let image = typeof dto.image === "string" ? dto.image.trim() : undefined;
+      const requestPhoto = typeof req.body?.photo === "string" ? req.body.photo.trim() : undefined;
+      if (!image && requestPhoto) {
+        image = requestPhoto;
+      }
+      if (req.file) {
+        const uploadedImage = await uploadService.uploadImage(req.file, "bite-brew/staff");
+        image = uploadedImage.url;
+      }
+
       const staff = await staffService.createStaff({
         name: dto.name.trim(),
         email: dto.email.trim().toLowerCase(),
-        image: dto.image?.trim(),
+        image,
         role: dto.role.trim(),
       });
 
@@ -68,10 +80,20 @@ export class StaffController {
         return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
       }
 
+      let image = typeof dto.image === "string" ? dto.image.trim() : undefined;
+      const requestPhoto = typeof req.body?.photo === "string" ? req.body.photo.trim() : undefined;
+      if (!image && requestPhoto) {
+        image = requestPhoto;
+      }
+      if (req.file) {
+        const uploadedImage = await uploadService.uploadImage(req.file, "bite-brew/staff");
+        image = uploadedImage.url;
+      }
+
       const staff = await staffService.updateStaff(id, {
         name: dto.name?.trim(),
         email: dto.email?.trim().toLowerCase(),
-        image: dto.image?.trim(),
+        image,
         role: dto.role?.trim(),
       });
 
