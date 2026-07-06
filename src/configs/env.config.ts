@@ -17,6 +17,17 @@ const cleanPass = (value?: string): string | undefined => {
   return cleaned ? cleaned.replace(/\s+/g, "") : cleaned;
 };
 
+const parseToInt = (value?: string, defaultValue: number = 0): number => {
+  if (!value) return defaultValue;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultValue : parsed;
+};
+
+const parseToBoolean = (value?: string, defaultValue: boolean = false): boolean => {
+  if (!value) return defaultValue;
+  return value.toLowerCase() === "true" || value === "1";
+};
+
 export const envConfig = {
   PORT: cleanEnv(process.env.PORT),
   DB_PASSWORD: cleanEnv(process.env.DB_PASSWORD),
@@ -25,6 +36,26 @@ export const envConfig = {
   DB_TYPE: cleanEnv(process.env.DB_TYPE),
   DB_NAME: cleanEnv(process.env.DB_NAME),
   DB_USER_NAME: cleanEnv(process.env.DB_USER_NAME),
+  // PostgreSQL Connection Pool Configuration
+  DB_POOL_MAX: parseToInt(
+    process.env.DB_POOL_MAX,
+    process.env.NODE_ENV === "production" ? 20 : 10
+  ),
+  DB_POOL_MIN: parseToInt(
+    process.env.DB_POOL_MIN,
+    process.env.NODE_ENV === "production" ? 5 : 2
+  ),
+  DB_POOL_IDLE_TIMEOUT_MS: parseToInt(
+    process.env.DB_POOL_IDLE_TIMEOUT_MS,
+    30000
+  ),
+  DB_POOL_CONNECTION_TIMEOUT_MS: parseToInt(
+    process.env.DB_POOL_CONNECTION_TIMEOUT_MS,
+    10000
+  ),
+  DB_POOL_KEEP_ALIVE: parseToBoolean(process.env.DB_POOL_KEEP_ALIVE, true),
+  DB_POOL_LOG_QUERIES: parseToBoolean(process.env.DB_POOL_LOG_QUERIES, false),
+  // End of pool configuration
   JWT_SECRET_TOKEN: cleanEnv(process.env.JWT_SECRET_TOKEN),
   ACCESS_TOKEN_SECRET: cleanEnv(process.env.ACCESS_TOKEN_SECRET),
   REFRESH_TOKEN_SECRET: cleanEnv(process.env.REFRESH_TOKEN_SECRET),
