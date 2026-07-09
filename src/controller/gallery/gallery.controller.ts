@@ -48,9 +48,26 @@ export class GalleryController {
           message: `Invalid category. Allowed values: ${Object.values(GalleryCategory).join(", ")}`,
         });
       }
-      const tags = typeof req.body?.tags === "string" ? req.body.tags.trim() : undefined;
+      // tags may come as string ("#a,#b") or array (['#a','#b'])
+      const tags = (() => {
+        const raw = req.body?.tags;
+        if (Array.isArray(raw)) {
+          const cleaned = raw.map((t) => (typeof t === "string" ? t.trim() : "")).filter(Boolean);
+          return cleaned.length ? cleaned : undefined;
+        }
+        if (typeof raw === "string") {
+          const cleaned = raw
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean);
+          return cleaned.length ? cleaned : undefined;
+        }
+        return undefined;
+      })();
+
       const featured = parseBoolean(req.body?.featured);
       const orderIndex = parseNumber(req.body?.orderIndex);
+
 
       const data = await galleryService.create({
         title: req.body?.title || "Untitled",
