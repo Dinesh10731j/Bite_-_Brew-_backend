@@ -12,6 +12,7 @@ export const getSmtpTransporter = (): Transporter => {
     host: envConfig.SMTP_HOST || "localhost",
     port: Number(envConfig.SMTP_PORT || 587),
     secure: Number(envConfig.SMTP_PORT || 587) === 465,
+    pool:true,
     auth: envConfig.SMTP_USER && envConfig.SMTP_PASS ? {
       user: envConfig.SMTP_USER,
       pass: envConfig.SMTP_PASS,

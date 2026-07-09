@@ -53,6 +53,7 @@ export class GalleryController {
       const orderIndex = parseNumber(req.body?.orderIndex);
 
       const data = await galleryService.create({
+        title: req.body?.title || "Untitled",
         url: imageUrl,
         ...(category ? { category } : {}),
         ...(tags ? { tags } : {}),

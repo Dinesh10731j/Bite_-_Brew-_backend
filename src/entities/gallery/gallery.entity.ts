@@ -7,14 +7,17 @@ export class GalleryImage {
   id!: string;
 
   @Column()
+  title!: string;
+  @Column()
   url!: string;
 
   @Index()
   @Column({ type: "enum", enum: GalleryCategory, default: GalleryCategory.FOOD })
   category!: string;
 
-  @Column({ nullable: true })
-  tags?: string;
+  @Column({ type: "text", array: true, nullable: true })
+  tags?: string[];
+
 
   @Column({ default: false })
   featured!: boolean;

@@ -5,6 +5,9 @@ export class CreateGalleryDTO {
   @IsUrl()
   url!: string;
 
+  @IsString()
+  title!: string;
+
   @IsOptional()
   @IsEnum(GalleryCategory)
   category?: GalleryCategory;
