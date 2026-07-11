@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { AuthService } from "../../service/auth/auth.service";
 import { AuthRepository } from "../../repository/auth/auth.repository";
-import bcrypt from "bcryptjs";
+
 import { ForgotPasswordDTO, ResetPasswordDTO, SignInDTO, SignUpDTO } from "../../dto/user/user.dto";
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
@@ -11,7 +11,6 @@ import { ServiceResult } from "../../types/service_result";
 import { UserRole } from "../../constant/enum.constant";
 import { AdminLog } from "../../entities/auth/auth.entity";
 import { AppDataSource } from "../../configs/psqlDb.config";
-
 export class AuthController {
   private static createAuthService() {
     return new AuthService(new AuthRepository());
@@ -76,24 +75,9 @@ export class AuthController {
       if (errors.length > 0) return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
       const authService = AuthController.createAuthService();
 
-      // normalize inputs and pre-check so we can log helpful diagnostics
-      const email = dto.email.trim().toLowerCase();
-      const password = dto.password.trim();
-      const repo = new AuthRepository();
-      const dbUser = await repo.findByEmail(email);
-      if (!dbUser) {
-        console.warn(`Signin failed: user not found for email=${email}`);
-        return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: Message.INVALID_EMAIL_OR_PASSWORD });
-      }
-
-      const ok = await bcrypt.compare(password, dbUser.password);
-      if (!ok) {
-        console.warn(`Signin failed: invalid password for userId=${dbUser.id}`);
-        return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: Message.INVALID_EMAIL_OR_PASSWORD });
-      }
-
       const { access_token, refresh_token, user } = await authService.signin(dto);
       const authCookieOptions = AuthController.getAuthCookieOptions(req);
+
 
       if (user.role === UserRole.ADMIN || user.role === UserRole.MANAGER) {
         const rawIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip;

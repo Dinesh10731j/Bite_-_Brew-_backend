@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { getPerfTracker } from '../../perf/perfContext';
+
 import { HTTP_STATUS } from "../../constant/statusCode.interface";
 import { Message } from "../../constant/message.interface";
 import { UserRole } from "../../constant/enum.constant";
@@ -58,26 +60,55 @@ export class AuthService {
     const email = dto.email.trim().toLowerCase();
     const password = dto.password.trim();
 
-    const user = await this.authRepository.findByEmail(email);
+    const tracker = getPerfTracker();
+
+    const user = tracker
+      ? await tracker.measure('database.user_lookup', () => this.authRepository.findByEmail(email))
+      : await this.authRepository.findByEmail(email);
+
     if (!user) {
       throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
     }
 
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) {
-      throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
+    if (tracker) {
+      const ok = await tracker.measure('bcrypt.compare', () => bcrypt.compare(password, user.password));
+      if (!ok) throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
+    } else {
+      const ok = await bcrypt.compare(password, user.password);
+      if (!ok) throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
     }
 
-    const access_token = jwt.sign(
-        { userId: user.id, email: user.email, role: user.role },
-      ACCESS_SECRET as jwt.Secret,
-      { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions
-    );
-    const refresh_token = jwt.sign(
-      { userId: user.id },
-      REFRESH_SECRET as jwt.Secret,
-      { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions
-    );
+    const access_token = tracker
+      ? await tracker.measure('jwt.access', () =>
+          Promise.resolve(
+            jwt.sign(
+              { userId: user.id, email: user.email, role: user.role },
+              ACCESS_SECRET as jwt.Secret,
+              { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions,
+            ),
+          ),
+        )
+      : jwt.sign(
+          { userId: user.id, email: user.email, role: user.role },
+          ACCESS_SECRET as jwt.Secret,
+          { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions,
+        );
+
+    const refresh_token = tracker
+      ? await tracker.measure('jwt.refresh', () =>
+          Promise.resolve(
+            jwt.sign(
+              { userId: user.id },
+              REFRESH_SECRET as jwt.Secret,
+              { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions,
+            ),
+          ),
+        )
+      : jwt.sign(
+          { userId: user.id },
+          REFRESH_SECRET as jwt.Secret,
+          { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions,
+        );
 
     return {
       access_token,
@@ -85,6 +116,7 @@ export class AuthService {
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     };
   }
+
 
   async refreshAccessToken(refreshToken: string) {
     const decoded = jwt.verify(refreshToken, REFRESH_SECRET as jwt.Secret) as { userId: string };

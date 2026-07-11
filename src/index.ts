@@ -5,8 +5,12 @@ import { envConfig } from './configs/env.config';
 import { verifySmtpConnection } from './configs/smtp.config';
 import { redisClient, verifyRedisConnection } from './configs/redis.config';
 import './queue/email.worker';
+import { initObservability } from './observability/telemetryInit';
+
+initObservability();
 
 const { server } = createApp();
+
 const basePort = Number(envConfig.PORT) || 7000;
 
 const findFreePort = async (startingPort: number, maxRetries = 5): Promise<number> => {
