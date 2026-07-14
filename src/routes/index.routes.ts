@@ -12,6 +12,7 @@ import analyticsRoutes from "./analytics/analytics.routes";
 import reportsRoutes from "./reports/reports.routes";
 import uploadRoutes from "./upload/upload.routes";
 import activityLogsRoutes from "./activityLogs/activityLogs.routes";
+import loyaltyRoutes from "./loyalty/loyalty.routes";
 
 const router = Router();
 
@@ -29,5 +30,7 @@ router.use("/analytics", analyticsRoutes);
 router.use("/reports", reportsRoutes);
 router.use("/uploads", uploadRoutes);
 router.use("/activity-logs", activityLogsRoutes);
+router.use("/loyalty", loyaltyRoutes);
 
 export default router;
+
