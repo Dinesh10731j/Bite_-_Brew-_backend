@@ -33,6 +33,46 @@ export class LoyaltyController {
   /**
    * Retrieves the comprehensive loyalty dashboard snapshot for the logged-in customer.
    */
+
+static async createAccount(req: Request, res: Response): Promise<Response | void> {
+    try {
+      const customerId = req.user?.id;
+      const { referralCode } = req.body;
+
+      if (!customerId) {
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: Message.UNAUTHORIZED });
+      }
+
+      const account = await loyaltyService.createAccount(customerId, referralCode);
+
+      return res.status(HTTP_STATUS.CREATED).json({
+        success: true,
+        message: "Loyalty account initialized successfully",
+        data: {
+          customerId: account.customerId,
+          referralCode: account.referralCode,
+          currentPoints: account.currentPoints,
+          membershipTier: account.membershipTier,
+          lifetimeEarned: account.lifetimeEarned,
+          lifetimeRedeemed: account.lifetimeRedeemed,
+          expiredPoints: account.expiredPoints,
+          totalSpending: account.totalSpending,
+        },
+      });
+    } catch (error: any) {
+      // IMPORTANT: surface the real error for debugging 500s
+      console.error("[LoyaltyController.createAccount] failed:", error);
+
+      if (error?.statusCode === 409) {
+        return res.status(409).json({ message: error.message });
+      }
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+    }
+  }
+
+
+
+
   static async getDashboard(req: Request, res: Response) {
     try {
       const customerId = req.user?.id; // Assumes auth middleware populates req.user
@@ -42,7 +82,8 @@ export class LoyaltyController {
 
       const dashboardData = await loyaltyService.getCustomerDashboard(customerId);
       return res.status(HTTP_STATUS.OK).json({ message: Message.SUCCESS, data: dashboardData });
-    } catch (_error) {
+    } catch (error) {
+      console.error('[LoyaltyController.getDashboard] failed:', error);
       return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
     }
   }

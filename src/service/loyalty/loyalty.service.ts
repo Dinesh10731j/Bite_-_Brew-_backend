@@ -11,6 +11,35 @@ export class LoyaltyService {
   constructor(private readonly repository: LoyaltyRepository) {}
 
   // ==========================================
+  // ACCOUNT INITIALIZATION
+  // ==========================================
+  async createAccount(customerId: string, referralCode: string) {
+    return this.repository.runInTransaction(async (transactionalManager) => {
+      const existingAccount = await this.repository.findByCustomerId(customerId, transactionalManager);
+      if (existingAccount) {
+        const err: any = new Error("Loyalty account already exists for this customer");
+        err.statusCode = 409;
+        throw err;
+      }
+
+      const account = new LoyaltyAccount();
+      account.customerId = customerId;
+      account.referralCode = referralCode;
+
+      account.currentPoints = 0;
+      account.lifetimeEarned = 0;
+      account.lifetimeRedeemed = 0;
+      account.expiredPoints = 0;
+      account.membershipTier = "BRONZE";
+      account.totalSpending = 0;
+
+      await this.repository.saveAccount(account, transactionalManager);
+      return account;
+    });
+  }
+
+
+  // ==========================================
   // CUSTOMER DASHBOARD
   // ==========================================
   async getCustomerDashboard(customerId: string) {
@@ -75,7 +104,7 @@ export class LoyaltyService {
       }
 
       // Append transaction journal log audit
-      await this.repository.createTransaction({
+      const transaction = await this.repository.createTransaction({
         customerId,
         amount: reward.pointsRequired,
         type: "REDEMPTION",
@@ -94,7 +123,9 @@ export class LoyaltyService {
         walletItem.expiresAt = expiry;
       }
 
-      return this.repository.saveWalletItem(walletItem, transactionalManager);
+      const savedWalletItem = await this.repository.saveWalletItem(walletItem, transactionalManager);
+      
+      return { walletItem: savedWalletItem, transaction };
     });
   }
 
@@ -178,6 +209,8 @@ export class LoyaltyService {
 
     return this.repository.saveReferral(referral);
   }
+
+
 
   // ==========================================
   // TRANSACTION HISTORIES LIST

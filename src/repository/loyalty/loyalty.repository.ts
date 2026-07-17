@@ -104,11 +104,13 @@ export class LoyaltyRepository {
   // CHECK-IN & REFERRAL OPERATIONS
   // ==========================================
   findLatestCheckIn(customerId: string) {
-    return this.checkInRepo.findOne({
-      where: { customerId },
-      order: { checkInDate: "DESC" }
-    });
+    // Explicitly select physical columns to avoid alias/name mapping issues.
+    return this.checkInRepo.createQueryBuilder("DailyCheckIn")
+      .where("DailyCheckIn.customer_id = :customerId", { customerId })
+      .orderBy("DailyCheckIn.createdAt", "DESC")
+      .getOne();
   }
+
 
   saveCheckIn(checkIn: DailyCheckIn, transactionalManager?: EntityManager) {
     const manager = transactionalManager || this.checkInRepo.manager;

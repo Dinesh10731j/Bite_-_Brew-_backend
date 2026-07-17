@@ -8,8 +8,26 @@ import {
   IsOptional, 
   IsBoolean, 
   IsInt, 
-  IsObject 
+  IsObject,
+  Length
 } from "class-validator";
+
+
+
+export class CreateLoyaltyAccountDto {
+  @IsNotEmpty({ message: "Referral code is required" })
+  @IsString({ message: "Referral code must be a string" })
+  @Length(3, 20, { message: "Referral code must be between 3 and 20 characters long" })
+  referralCode!: string;
+}
+
+
+// Backward-compatible alias (some routes/tests may import the old casing/name)
+export { CreateLoyaltyAccountDto as createAccountDto };
+
+
+
+
 
 export class RedeemRewardDto {
   @IsNotEmpty()

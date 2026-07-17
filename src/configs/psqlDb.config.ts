@@ -20,7 +20,12 @@ const synchronize = process.env.DB_SYNCHRONIZE
   ? process.env.DB_SYNCHRONIZE === "true"
   : !isProduction;
 const isTsRuntime = __filename.endsWith(".ts");
-const entityPaths = isTsRuntime ? ["src/**/*.entity.ts"] : ["dist/**/*.entity.js"];
+const entityPaths = isTsRuntime
+  ? ["src/**/*.entity.ts", "src/**/*.entities.ts", "src/**/*.entities/*.ts"]
+  : ["dist/**/*.entity.js", "dist/**/*.entities.js", "dist/**/*.entities/*.js"];
+
+
+
 
 /**
  * PostgreSQL Connection Pool Configuration

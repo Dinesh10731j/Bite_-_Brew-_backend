@@ -9,17 +9,36 @@ import {
   ClaimReferralDto,
   ManualPointsAdjustmentDto,
   CreateRewardCatalogItemDto,
+  CreateLoyaltyAccountDto
 } from "../../dto/loyalty/loyalty.dto";
 
 
 const router = Router();
 
 // ==========================================
+// ACCOUNT INITIALIZATION (MISSED ENDPOINTS FIX)
+// ==========================================
+
+/**
+ * @route   POST /accounts
+ * @desc    Initialize a new loyalty profile account for an authenticated customer
+ * @access  Private (Customer)
+ * @base    Mapped under /loyalty -> Full URL: /api/v1/bite-brew/loyalty/accounts
+ */
+router.post(
+  "/accounts",
+  jwtVerify,
+  requestValidation(CreateLoyaltyAccountDto),
+  LoyaltyController.createAccount
+);
+
+
+// ==========================================
 // CUSTOMER REWARDS ROUTING
 // ==========================================
 
 /**
- * @route   GET /api/loyalty/dashboard
+ * @route   GET /dashboard
  * @desc    Get the logged-in customer's loyalty profile snapshot & current daily streak
  * @access  Private (Customer)
  */
@@ -29,9 +48,8 @@ router.get(
   LoyaltyController.getDashboard
 );
 
-
 /**
- * @route   POST /api/loyalty/redeem
+ * @route   POST /redeem
  * @desc    Redeem an active reward catalog item using accumulated points
  * @access  Private (Customer)
  */
@@ -42,9 +60,8 @@ router.post(
   LoyaltyController.redeemReward
 );
 
-
 /**
- * @route   POST /api/loyalty/check-in
+ * @route   POST /check-in
  * @desc    Process customer daily check-in to build streaks and earn points
  * @access  Private (Customer)
  */
@@ -54,10 +71,8 @@ router.post(
   LoyaltyController.dailyCheckIn
 );
 
-
-
 /**
- * @route   POST /api/loyalty/referral/claim
+ * @route   POST /referral/claim
  * @desc    Claim an invite referral code by a newly registered customer
  * @access  Private (Customer)
  */
@@ -68,9 +83,8 @@ router.post(
   LoyaltyController.claimReferral
 );
 
-
 /**
- * @route   GET /api/loyalty/history
+ * @route   GET /history
  * @desc    Fetch lists of point actions (EARNING, REDEMPTION, EXPIRATION) with query filters
  * @access  Private (Customer)
  */
@@ -81,13 +95,12 @@ router.get(
 );
 
 
-
 // ==========================================
 // ADMINISTRATIVE ROUTING
 // ==========================================
 
 /**
- * @route   PATCH /api/loyalty/admin/config
+ * @route   PATCH /admin/config
  * @desc    Update global loyalty earning configurations and point calculation values
  * @access  Private (Admin)
  */
@@ -98,10 +111,8 @@ router.patch(
   LoyaltyController.updateConfig
 );
 
-
-
 /**
- * @route   POST /api/loyalty/admin/adjust-points
+ * @route   POST /admin/adjust-points
  * @desc    Manually grant or deduct reward points from a targeted customer profile
  * @access  Private (Admin)
  */
@@ -113,9 +124,8 @@ router.post(
   LoyaltyController.adjustPoints
 );
 
-
 /**
- * @route   POST /api/loyalty/admin/catalog
+ * @route   POST /admin/catalog
  * @desc    Add a brand new reward offering to the public rewards catalog
  * @access  Private (Admin)
  */
@@ -127,9 +137,8 @@ router.post(
   LoyaltyController.createRewardCatalogItem
 );
 
-
 /**
- * @route   GET /api/loyalty/admin/analytics
+ * @route   GET /admin/analytics
  * @desc    Review high-level system metrics over specific date ranges
  * @access  Private (Admin)
  */
@@ -140,6 +149,4 @@ router.get(
   LoyaltyController.getLoyaltyAnalytics
 );
 
-
 export default router;
-

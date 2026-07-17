@@ -9,44 +9,55 @@ import {
   JoinColumn 
 } from "typeorm";
 
+
+
+
+
 @Entity("loyalty_accounts")
 export class LoyaltyAccount {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
   @Index({ unique: true })
-  @Column({ type: "uuid", nullable: false })
+  @Column({ name: "customer_id", type: "uuid", nullable: false })
   customerId!: string;
 
-  @Column({ type: "int", default: 0 })
+  @Column({ name: "current_points", type: "int", default: 0 })
   currentPoints!: number;
 
-  @Column({ type: "int", default: 0 })
+  @Column({ name: "lifetime_earned", type: "int", default: 0 })
   lifetimeEarned!: number;
 
-  @Column({ type: "int", default: 0 })
+  @Column({ name: "lifetime_redeemed", type: "int", default: 0 })
   lifetimeRedeemed!: number;
 
-  @Column({ type: "int", default: 0 })
+  @Column({ name: "expired_points", type: "int", default: 0 })
   expiredPoints!: number;
 
-  @Column({ type: "varchar", length: 30, default: "BRONZE" })
+  @Column({ name: "membership_tier", type: "varchar", length: 30, default: "BRONZE" })
   membershipTier!: "BRONZE" | "SILVER" | "GOLD" | "PLATINUM";
 
-  @Column({ type: "numeric", precision: 12, scale: 2, default: 0, transformer: {
-    to: (value: number) => value,
-    from: (value: string) => parseFloat(value)
-  }})
+  @Column({
+    name: "total_spending",
+    type: "numeric",
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   totalSpending!: number;
 
   @Index({ unique: true })
-  @Column({ type: "varchar", length: 20, nullable: false })
+  @Column({ name: "referral_code", type: "varchar", length: 20, nullable: false })
   referralCode!: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: "updated_at" })
   updatedAt!: Date;
 }
 
@@ -56,7 +67,7 @@ export class LoyaltyTransaction {
   id!: string;
 
   @Index()
-  @Column({ type: "uuid", nullable: false })
+  @Column({ name: "customer_id", type: "uuid", nullable: false })
   customerId!: string;
 
   @Column({ type: "int", nullable: false })
@@ -117,7 +128,7 @@ export class RewardWallet {
   id!: string;
 
   @Index()
-  @Column({ type: "uuid", nullable: false })
+  @Column({ name: "customer_id", type: "uuid", nullable: false })
   customerId!: string;
 
   @Column({ type: "uuid", nullable: false })
@@ -146,10 +157,10 @@ export class DailyCheckIn {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @Column({ type: "uuid", nullable: false })
+  @Column({ name: "customer_id", type: "uuid", nullable: false })
   customerId!: string;
 
-  @Column({ type: "varchar", length: 10, nullable: false })
+  @Column({ name: "check_in_date", type: "varchar", length: 10, nullable: false })
   checkInDate!: string; // Format: YYYY-MM-DD
 
   @Column({ type: "int", default: 1 })
