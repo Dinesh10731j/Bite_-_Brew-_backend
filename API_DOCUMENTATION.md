@@ -222,6 +222,360 @@ Short explanation: Delete an order by ID.
 - Auth: Yes (`admin`, `manager`)
 - Response: `200` deleted, `404` not found
 
+## Loyalty
+
+The loyalty system gives authenticated customers points for completed purchases, daily check-ins, referrals, and admin adjustments. Customers spend points by redeeming rewards from the rewards catalog. Every point movement is written to `loyalty_transactions` for auditability.
+
+### Loyalty Flow
+
+1. Customer signs in and calls `GET /loyalty/dashboard`.
+2. If the customer does not already have a loyalty account, the backend creates one automatically with:
+   - `currentPoints = 0`
+   - `lifetimeEarned = 0`
+   - `lifetimeRedeemed = 0`
+   - `expiredPoints = 0`
+   - `membershipTier = BRONZE`
+   - generated `referralCode`
+3. Customer earns points from:
+   - completed authenticated orders
+   - daily check-ins
+   - completed referrals
+   - admin point grants
+4. Customer spends points by redeeming a reward catalog item.
+5. Redeemed rewards are issued into the customer's reward wallet.
+6. Frontend can show point history from `/loyalty/history`.
+
+### Points Calculation
+
+Purchase points are awarded when an authenticated order status is changed to `completed`.
+
+Default formula:
+
+```txt
+pointsAwarded = floor(order.totalPrice * LOYALTY_POINTS_PER_CURRENCY_UNIT)
+```
+
+Default `LOYALTY_POINTS_PER_CURRENCY_UNIT` is `1`.
+
+Example:
+
+```txt
+order.totalPrice = 275.50
+pointsAwarded = floor(275.50 * 1) = 275
+```
+
+The purchase reward is idempotent. The backend stores `sourceType = ORDER`, `sourceId = order.id`, and `type = EARNING`, so the same completed order cannot award points twice.
+
+### Tier Calculation
+
+Customer tier is calculated from `totalSpending`.
+
+```txt
+BRONZE   >= 0
+SILVER   >= 100
+GOLD     >= 300
+PLATINUM >= 750
+```
+
+### Transaction Types
+
+Possible `loyalty_transactions.type` values:
+
+```txt
+EARNING
+REDEMPTION
+EXPIRATION
+ADJUSTMENT
+```
+
+Possible `sourceType` values:
+
+```txt
+ORDER
+REWARD_REDEMPTION
+DAILY_CHECK_IN
+REFERRAL
+ADMIN_ADJUSTMENT
+POINT_EXPIRATION
+```
+
+Each transaction may include:
+
+- `amount`
+- `type`
+- `reason`
+- `balanceAfter`
+- `sourceType`
+- `sourceId`
+- `metadata`
+- `createdAt`
+
+### `POST /loyalty/accounts`
+Short explanation: Create the authenticated customer's loyalty account. Usually optional because dashboard lazy-creates an account if missing.
+- Auth: Yes
+- Body:
+  - `referralCode` (optional string, 3-20 characters; if omitted, backend generates one)
+- Example body:
+
+```json
+{
+  "referralCode": "BITE-RAJ123"
+}
+```
+
+- Response:
+  - `201` loyalty account created
+  - `409` referral code already in use
+  - `401` unauthorized
+
+### `GET /loyalty/dashboard`
+Short explanation: Get the authenticated customer's loyalty account snapshot.
+- Auth: Yes
+- Body: none
+- Response: `200` with account, streak, and active reward count
+- Example response:
+
+```json
+{
+  "message": "Success",
+  "data": {
+    "account": {
+      "customerId": "45aa3c5d-bb09-4896-87c8-ca62561aeaf1",
+      "currentPoints": 120,
+      "lifetimeEarned": 180,
+      "lifetimeRedeemed": 60,
+      "expiredPoints": 0,
+      "membershipTier": "SILVER",
+      "totalSpending": 150,
+      "referralCode": "BITE-A1B2C3"
+    },
+    "streakCount": 3,
+    "lastCheckInDate": "2026-07-21",
+    "activeRewards": 1
+  }
+}
+```
+
+### `GET /loyalty/catalog`
+Short explanation: List active, non-expired rewards customers can redeem.
+- Auth: No
+- Body: none
+- Response: `200` active reward catalog
+
+### `GET /loyalty/wallet`
+Short explanation: List rewards already redeemed by the authenticated customer.
+- Auth: Yes
+- Body: none
+- Response: `200` wallet items with reward catalog details
+- Example response item:
+
+```json
+{
+  "id": "wallet-id",
+  "rewardCatalogId": "reward-id",
+  "isUsed": false,
+  "expiresAt": "2026-07-28T00:00:00.000Z",
+  "rewardCatalog": {
+    "title": "Free Coffee",
+    "type": "FREE_COFFEE",
+    "pointsRequired": 100
+  }
+}
+```
+
+### `POST /loyalty/redeem`
+Short explanation: Redeem a reward using current points. The reward is issued into the customer's wallet.
+- Auth: Yes
+- Body:
+  - `rewardId` (UUID, required)
+- Example body:
+
+```json
+{
+  "rewardId": "7a77becc-7bc9-4d12-9f85-0ef384d48d7f"
+}
+```
+
+- Backend checks:
+  - reward exists
+  - reward is active
+  - reward is not expired
+  - inventory is available
+  - customer has not exceeded `usageLimit`
+  - customer has enough `currentPoints`
+- Effects:
+  - subtracts `pointsRequired` from `currentPoints`
+  - adds `pointsRequired` to `lifetimeRedeemed`
+  - decrements `inventoryLimit` when configured
+  - creates a `reward_wallets` item
+  - creates a `REDEMPTION` transaction
+- Response:
+  - `200` redeemed
+  - `400` insufficient points, inactive reward, expired reward, inventory/usage limit reached
+  - `401` unauthorized
+
+### `POST /loyalty/check-in`
+Short explanation: Award daily check-in points and maintain streak count.
+- Auth: Yes
+- Body: none
+- Default calculation:
+
+```txt
+base = 5
+3+ day streak bonus = +5
+7+ day streak bonus = +15
+```
+
+- Examples:
+
+```txt
+Day 1 = 5 points
+Day 3 = 10 points
+Day 7 = 20 points
+```
+
+- Response:
+  - `200` checked in
+  - `400` already checked in today
+  - `401` unauthorized
+
+### `POST /loyalty/referral/claim`
+Short explanation: Claim another customer's referral code. Points are awarded only after the referred customer completes their first order.
+- Auth: Yes
+- Body:
+  - `referralCode` (required string)
+- Example body:
+
+```json
+{
+  "referralCode": "BITE-A1B2C3"
+}
+```
+
+- Backend checks:
+  - referral code exists
+  - user is not referring themselves
+  - user has not already claimed a referral
+- Initial effect:
+  - creates referral with `status = PENDING`
+- Completion effect:
+  - when the referred customer completes first authenticated order, referral becomes `COMPLETED`
+  - referrer gets `LOYALTY_REFERRER_BONUS_POINTS`, default `50`
+  - friend gets `LOYALTY_FRIEND_BONUS_POINTS`, default `25`
+- Response:
+  - `201` referral claimed
+  - `400` invalid referral, self referral, or already referred
+  - `401` unauthorized
+
+### `GET /loyalty/history`
+Short explanation: Get paginated loyalty point transaction history for the authenticated customer.
+- Auth: Yes
+- Query:
+  - `page` (optional, default `1`)
+  - `limit` (optional, default `10`)
+  - `type` (optional: `EARNING|REDEMPTION|EXPIRATION|ADJUSTMENT`)
+- Example:
+
+```http
+GET /loyalty/history?page=1&limit=10&type=EARNING
+```
+
+- Response: `200` with `{ data, pagination }`
+
+### `PATCH /loyalty/admin/config`
+Short explanation: Return active loyalty rules and requested config payload. Runtime persistence is not currently implemented.
+- Auth: Yes (`admin`)
+- Body: free-form object
+- Response: `200`
+
+### `POST /loyalty/admin/adjust-points`
+Short explanation: Manually grant or deduct points for a customer.
+- Auth: Yes (`admin`)
+- Body:
+  - `customerId` (UUID, required)
+  - `amount` (number, required, minimum `1`)
+  - `type` (required: `GRANT|DEDUCT`)
+  - `reason` (optional string)
+- Example body:
+
+```json
+{
+  "customerId": "45aa3c5d-bb09-4896-87c8-ca62561aeaf1",
+  "amount": 100,
+  "type": "GRANT",
+  "reason": "Customer support compensation"
+}
+```
+
+- Effects:
+  - `GRANT`: increases `currentPoints` and `lifetimeEarned`
+  - `DEDUCT`: decreases `currentPoints` and increases `lifetimeRedeemed`
+  - creates an `ADJUSTMENT` transaction
+- Response:
+  - `200` updated
+  - `400` invalid payload or insufficient points for deduct
+  - `404` loyalty account not found
+
+### `POST /loyalty/admin/catalog`
+Short explanation: Create a reward catalog item.
+- Auth: Yes (`admin`)
+- Body:
+  - `title` (required string)
+  - `type` (optional: `FREE_COFFEE|FREE_CAKE|PERCENTAGE_DISCOUNT|FIXED_DISCOUNT|FREE_DELIVERY`, default `FIXED_DISCOUNT`)
+  - `pointsRequired` (required number)
+  - `isActive` (optional boolean, default `true`)
+  - `usageLimit` (optional number; max redemptions per customer)
+  - `inventoryLimit` (optional number; total available inventory)
+  - `validityDays` (optional number; wallet reward validity after redemption)
+  - `expiryDate` (optional date string; catalog expiry)
+  - `metadata` (optional object)
+- Example body:
+
+```json
+{
+  "title": "Free Coffee",
+  "type": "FREE_COFFEE",
+  "pointsRequired": 100,
+  "isActive": true,
+  "usageLimit": 1,
+  "inventoryLimit": 50,
+  "validityDays": 7,
+  "expiryDate": "2026-12-31T23:59:59.000Z",
+  "metadata": {
+    "description": "Redeem one free coffee"
+  }
+}
+```
+
+- Response:
+  - `201` created
+  - `400` invalid payload
+
+### `GET /loyalty/admin/analytics`
+Short explanation: Get aggregate loyalty transaction metrics over an optional date range.
+- Auth: Yes (`admin`)
+- Query:
+  - `start` (optional date string)
+  - `end` (optional date string)
+- Example:
+
+```http
+GET /loyalty/admin/analytics?start=2026-07-01&end=2026-07-31
+```
+
+- Response: `200` with raw points totals grouped by transaction type and active loyalty rules
+
+### Frontend Integration Checklist
+
+- Send `Authorization: Bearer <access_token>` for all protected loyalty routes.
+- Use `/loyalty/dashboard` as the first loyalty screen call.
+- Use `/loyalty/catalog` to render redeemable rewards.
+- Use `/loyalty/wallet` to render already-redeemed rewards.
+- Use `/loyalty/history` for the points activity screen.
+- After signin, make sure the access token is included in the `Authorization` header; cookies alone are not enough for current route protection.
+- To award purchase points, create orders as an authenticated user and have admin/manager update the order status to `completed`.
+- Do not calculate trusted point balances on the frontend. Display backend values from dashboard/history responses.
+
 ## Messages
 
 ### `POST /messages`

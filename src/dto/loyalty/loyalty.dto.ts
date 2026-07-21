@@ -15,10 +15,10 @@ import {
 
 
 export class CreateLoyaltyAccountDto {
-  @IsNotEmpty({ message: "Referral code is required" })
+  @IsOptional()
   @IsString({ message: "Referral code must be a string" })
   @Length(3, 20, { message: "Referral code must be between 3 and 20 characters long" })
-  referralCode!: string;
+  referralCode?: string;
 }
 
 
@@ -92,6 +92,10 @@ export class CreateRewardCatalogItemDto {
   @IsInt()
   @Min(1)
   validityDays?: number;
+
+  @IsOptional()
+  @IsString()
+  expiryDate?: string;
 
   @IsOptional()
   @IsObject()

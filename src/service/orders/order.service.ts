@@ -2,6 +2,8 @@ import { OrderStatus, OrderPriority, PaymentMethod } from "../../constant/enum.c
 import { AppDataSource } from "../../configs/psqlDb.config";
 import { MenuItem } from "../../entities/menu/menu.entity";
 import { OrdersRepository } from "../../repository/orders/orders.repository";
+import { LoyaltyRepository } from "../../repository/loyalty/loyalty.repository";
+import { LoyaltyService } from "../loyalty/loyalty.service";
 import { buildPaginationMeta, parsePagination } from "../../utils/helpers/pagination_helper";
 import { In } from "typeorm";
 
@@ -32,7 +34,10 @@ type CreateOrderResult =
   | { error: "INVALID_ITEMS" };
 
 export class OrderService {
-  constructor(private readonly ordersRepository: OrdersRepository) {}
+  constructor(
+    private readonly ordersRepository: OrdersRepository,
+    private readonly loyaltyService = new LoyaltyService(new LoyaltyRepository())
+  ) {}
 
   async createOrder(payload: CreateOrderInput, userId?: string): Promise<CreateOrderResult> {
     const isUuid = (value: string) =>
@@ -190,8 +195,15 @@ export class OrderService {
     if (!order) {
       return null;
     }
+    const previousStatus = order.status;
     order.status = status;
-    return this.ordersRepository.saveOrder(order);
+    const savedOrder = await this.ordersRepository.saveOrder(order);
+
+    if (status === OrderStatus.COMPLETED && previousStatus !== OrderStatus.CANCELLED) {
+      await this.loyaltyService.awardCompletedOrderPoints(savedOrder);
+    }
+
+    return savedOrder;
   }
 
   async updatePriority(id: string, priority: OrderPriority) {

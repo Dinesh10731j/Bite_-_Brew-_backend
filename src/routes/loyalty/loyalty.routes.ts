@@ -48,6 +48,17 @@ router.get(
   LoyaltyController.getDashboard
 );
 
+router.get(
+  "/catalog",
+  LoyaltyController.getRewardCatalog
+);
+
+router.get(
+  "/wallet",
+  jwtVerify,
+  LoyaltyController.getWallet
+);
+
 /**
  * @route   POST /redeem
  * @desc    Redeem an active reward catalog item using accumulated points

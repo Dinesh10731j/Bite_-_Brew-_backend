@@ -1,13 +1,14 @@
-import { AppDataSource } from "../../configs/psqlDb.config";
 import { EntityManager } from "typeorm";
-// Assume these entities exist in your setup based on the database requirements
-import { 
-  LoyaltyAccount, 
-  LoyaltyTransaction, 
-  RewardCatalog, 
-  RewardWallet, 
-  DailyCheckIn, 
-  Referral 
+import { AppDataSource } from "../../configs/psqlDb.config";
+import {
+  DailyCheckIn,
+  LoyaltyAccount,
+  LoyaltyTransaction,
+  LoyaltyTransactionSource,
+  LoyaltyTransactionType,
+  Referral,
+  RewardCatalog,
+  RewardWallet,
 } from "../../entities/loyalty/loyalty.entities";
 
 export class LoyaltyRepository {
@@ -18,26 +19,24 @@ export class LoyaltyRepository {
   private readonly checkInRepo = AppDataSource.getRepository(DailyCheckIn);
   private readonly referralRepo = AppDataSource.getRepository(Referral);
 
-  // ==========================================
-  // TRANSACTION MANAGER WRAPPER
-  // ==========================================
-  async runInTransaction<T>(work: (entityManager: EntityManager) => Promise<T>): Promise<T> {
+  runInTransaction<T>(work: (entityManager: EntityManager) => Promise<T>): Promise<T> {
     return AppDataSource.transaction(work);
   }
 
-  // ==========================================
-  // LOYALTY ACCOUNT OPERATIONS
-  // ==========================================
   findByCustomerId(customerId: string, transactionalManager?: EntityManager) {
     const manager = transactionalManager || this.accountRepo.manager;
     return manager.findOne(LoyaltyAccount, { where: { customerId } });
   }
 
+  findByReferralCode(referralCode: string, transactionalManager?: EntityManager) {
+    const manager = transactionalManager || this.accountRepo.manager;
+    return manager.findOne(LoyaltyAccount, { where: { referralCode } });
+  }
+
   findAccountForUpdate(customerId: string, transactionalManager: EntityManager) {
-    // Enforce pessimistic locking to prevent race conditions during point manipulations
     return transactionalManager.findOne(LoyaltyAccount, {
       where: { customerId },
-      lock: { mode: "pessimistic_write" }
+      lock: { mode: "pessimistic_write" },
     });
   }
 
@@ -46,33 +45,33 @@ export class LoyaltyRepository {
     return manager.save(LoyaltyAccount, account);
   }
 
-  // ==========================================
-  // TRANSACTION LOGGING OPERATIONS
-  // ==========================================
+  findTransactionBySource(
+    customerId: string,
+    sourceType: LoyaltyTransactionSource,
+    sourceId: string,
+    type: LoyaltyTransactionType,
+    transactionalManager?: EntityManager
+  ) {
+    const manager = transactionalManager || this.transactionRepo.manager;
+    return manager.findOne(LoyaltyTransaction, { where: { customerId, sourceType, sourceId, type } });
+  }
+
   createTransaction(payload: Partial<LoyaltyTransaction>, transactionalManager?: EntityManager) {
     const manager = transactionalManager || this.transactionRepo.manager;
-    const tx = manager.create(LoyaltyTransaction, payload);
+    const tx = manager.create(LoyaltyTransaction, { metadata: {}, ...payload });
     return manager.save(LoyaltyTransaction, tx);
   }
 
   async listTransactions(customerId: string, skip: number, take: number, type?: string) {
-    const qb = this.transactionRepo.createQueryBuilder("tx")
-      .where("tx.customerId = :customerId", { customerId });
+    const qb = this.transactionRepo.createQueryBuilder("tx").where("tx.customerId = :customerId", { customerId });
 
     if (type) {
       qb.andWhere("tx.type = :type", { type });
     }
 
-    return qb
-      .orderBy("tx.createdAt", "DESC")
-      .skip(skip)
-      .take(take)
-      .getManyAndCount();
+    return qb.orderBy("tx.created_at", "DESC").skip(skip).take(take).getManyAndCount();
   }
 
-  // ==========================================
-  // REWARD CATALOG & WALLET OPERATIONS
-  // ==========================================
   findRewardById(id: string, transactionalManager?: EntityManager) {
     const manager = transactionalManager || this.catalogRepo.manager;
     return manager.findOne(RewardCatalog, { where: { id } });
@@ -81,7 +80,7 @@ export class LoyaltyRepository {
   findRewardForUpdate(id: string, transactionalManager: EntityManager) {
     return transactionalManager.findOne(RewardCatalog, {
       where: { id },
-      lock: { mode: "pessimistic_write" }
+      lock: { mode: "pessimistic_write" },
     });
   }
 
@@ -100,29 +99,60 @@ export class LoyaltyRepository {
     return manager.save(RewardWallet, walletItem);
   }
 
-  // ==========================================
-  // CHECK-IN & REFERRAL OPERATIONS
-  // ==========================================
-  findLatestCheckIn(customerId: string) {
-    // Explicitly select physical columns to avoid alias/name mapping issues.
-    return this.checkInRepo.createQueryBuilder("DailyCheckIn")
-      .where("DailyCheckIn.customer_id = :customerId", { customerId })
-      .orderBy("DailyCheckIn.createdAt", "DESC")
-      .getOne();
+  listActiveRewards() {
+    return this.catalogRepo
+      .createQueryBuilder("reward")
+      .where("reward.is_active = :isActive", { isActive: true })
+      .andWhere("(reward.expiry_date IS NULL OR reward.expiry_date > NOW())")
+      .orderBy("reward.points_required", "ASC")
+      .addOrderBy("reward.created_at", "DESC")
+      .getMany();
   }
 
+  listWallet(customerId: string) {
+    return this.walletRepo.find({
+      where: { customerId },
+      relations: ["rewardCatalog"],
+      order: { createdAt: "DESC" },
+    });
+  }
+
+  countCustomerRewardRedemptions(customerId: string, rewardCatalogId: string, transactionalManager?: EntityManager) {
+    const manager = transactionalManager || this.walletRepo.manager;
+    return manager.count(RewardWallet, { where: { customerId, rewardCatalogId } });
+  }
+
+  findLatestCheckIn(customerId: string) {
+    return this.checkInRepo.findOne({
+      where: { customerId },
+      order: { checkInDate: "DESC", createdAt: "DESC" },
+    });
+  }
+
+  findCheckInByDate(customerId: string, checkInDate: string, transactionalManager?: EntityManager) {
+    const manager = transactionalManager || this.checkInRepo.manager;
+    return manager.findOne(DailyCheckIn, { where: { customerId, checkInDate } });
+  }
 
   saveCheckIn(checkIn: DailyCheckIn, transactionalManager?: EntityManager) {
     const manager = transactionalManager || this.checkInRepo.manager;
     return manager.save(DailyCheckIn, checkIn);
   }
 
-  findReferralByFriendId(friendId: string) {
-    return this.referralRepo.findOne({ where: { friendId } });
+  findReferralByFriendId(friendId: string, transactionalManager?: EntityManager) {
+    const manager = transactionalManager || this.referralRepo.manager;
+    return manager.findOne(Referral, { where: { friendId } });
   }
 
   findReferralByCode(referralCode: string) {
     return this.accountRepo.findOne({ where: { referralCode } });
+  }
+
+  findPendingReferralForUpdate(friendId: string, transactionalManager: EntityManager) {
+    return transactionalManager.findOne(Referral, {
+      where: { friendId, status: "PENDING" },
+      lock: { mode: "pessimistic_write" },
+    });
   }
 
   saveReferral(referral: Referral, transactionalManager?: EntityManager) {
@@ -130,17 +160,15 @@ export class LoyaltyRepository {
     return manager.save(Referral, referral);
   }
 
-  // ==========================================
-  // ANALYTICS QUERIES
-  // ==========================================
   async getAggregatedMetrics(startDate?: Date, endDate?: Date) {
-    const qb = this.transactionRepo.createQueryBuilder("tx")
+    const qb = this.transactionRepo
+      .createQueryBuilder("tx")
       .select("tx.type", "type")
       .addSelect("SUM(tx.amount)", "totalPoints")
       .addSelect("COUNT(tx.id)", "count");
 
     if (startDate && endDate) {
-      qb.where("tx.createdAt BETWEEN :startDate AND :endDate", { startDate, endDate });
+      qb.where("tx.created_at BETWEEN :startDate AND :endDate", { startDate, endDate });
     }
 
     return qb.groupBy("tx.type").getRawMany();

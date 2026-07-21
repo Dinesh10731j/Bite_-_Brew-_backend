@@ -46,27 +46,11 @@ const createApp = () => {
   app.use(requestContextMiddleware);
 
   // Performance breakdown tracing (after request correlation so trace/requestId are available).
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { perfRequestMiddleware } = require('../perf/perfMiddleware');
   app.use(perfRequestMiddleware);
 
   // Auto tracking
   app.use(autoUserTracking);
-
-
-
-
-
-  // API base path /api/v1/bite-brew
-  app.use('/api/v1/bite-brew', indexRouter);
-
-  app.get('/metrics', async (_req, res) => {
-    res.setHeader('Content-Type', metricsContentType);
-    res.status(200).send(await getMetrics());
-  });
-  app.get('/livez', (_req, res) => res.status(200).json({ status: 'live' }));
-  app.get('/readyz', (_req, res) => res.status(200).json({ status: 'ready' }));
-
   // Request metrics wrapper (measure total latency + bytes).
   // NOTE: must be before routes to cover entire lifecycle.
   app.use((req, res, next) => {
@@ -96,6 +80,16 @@ const createApp = () => {
     next();
   });
 
+  // API base path /api/v1/bite-brew
+  app.use('/api/v1/bite-brew', indexRouter);
+
+  app.get('/metrics', async (_req, res) => {
+    res.setHeader('Content-Type', metricsContentType);
+    res.status(200).send(await getMetrics());
+  });
+  app.get('/livez', (_req, res) => res.status(200).json({ status: 'live' }));
+  app.get('/readyz', (_req, res) => res.status(200).json({ status: 'ready' }));
+
   // Create HTTP server (don't listen)
   const server = http.createServer(app);
 
@@ -106,4 +100,3 @@ const createApp = () => {
 };
 
 export { createApp };
-

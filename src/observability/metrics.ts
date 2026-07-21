@@ -56,6 +56,47 @@ export const httpSerializationDurationMs = new client.Histogram({
   registers: [registry],
 });
 
+export const loyaltyPointsMovedTotal = new client.Counter({
+  name: 'loyalty_points_moved_total',
+  help: 'Total loyalty points moved by transaction type and source',
+  labelNames: ['type', 'source'],
+  registers: [registry],
+});
+
+export const loyaltyTransactionsTotal = new client.Counter({
+  name: 'loyalty_transactions_total',
+  help: 'Total loyalty transactions by type and source',
+  labelNames: ['type', 'source'],
+  registers: [registry],
+});
+
+export const loyaltyRewardRedemptionsTotal = new client.Counter({
+  name: 'loyalty_reward_redemptions_total',
+  help: 'Total reward redemptions grouped by reward type',
+  labelNames: ['reward_type'],
+  registers: [registry],
+});
+
+export const loyaltyReferralCompletionsTotal = new client.Counter({
+  name: 'loyalty_referral_completions_total',
+  help: 'Total completed loyalty referrals',
+  registers: [registry],
+});
+
+export const recordLoyaltyTransaction = (params: { type: string; source?: string; amount: number }): void => {
+  const source = params.source || 'UNKNOWN';
+  loyaltyTransactionsTotal.labels(params.type, source).inc(1);
+  loyaltyPointsMovedTotal.labels(params.type, source).inc(Math.abs(params.amount));
+};
+
+export const recordRewardRedemption = (rewardType: string): void => {
+  loyaltyRewardRedemptionsTotal.labels(rewardType).inc(1);
+};
+
+export const recordReferralCompletion = (): void => {
+  loyaltyReferralCompletionsTotal.inc(1);
+};
+
 export const getRouteLabel = (req: Request): string => {
   const routePath = req.route?.path;
   if (routePath) return String(routePath);
@@ -92,4 +133,3 @@ export const recordHttpRequest = (params: {
 
 export const getMetrics = async (): Promise<string> => registry.metrics();
 export const metricsContentType = registry.contentType;
-

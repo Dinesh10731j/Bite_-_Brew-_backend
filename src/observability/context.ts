@@ -4,11 +4,9 @@ import { randomUUID } from 'crypto';
 
 const REQUEST_ID_HEADER = 'x-request-id';
 
-declare global {
-  namespace Express {
-    interface Request {
-      requestId?: string;
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    requestId?: string;
   }
 }
 
