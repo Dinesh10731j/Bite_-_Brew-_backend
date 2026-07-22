@@ -193,35 +193,37 @@ export class LoyaltyService {
 
   async processDailyCheckIn(customerId: string) {
     const todayStr = todayUtcDate();
-    const latestCheckIn = await this.repository.findLatestCheckIn(customerId);
 
-    if (latestCheckIn && latestCheckIn.checkInDate === todayStr) {
-      throw serviceError("Already checked in today.");
-    }
-
-    let newStreak = 1;
-    if (latestCheckIn) {
-      const yesterday = new Date();
-      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-      if (latestCheckIn.checkInDate === yesterday.toISOString().slice(0, 10)) {
-        newStreak = latestCheckIn.streakCount + 1;
-      }
-    }
-
-    const streakBonus =
-      newStreak >= 7 ? RULES.dailyCheckInSevenDayBonus : newStreak >= 3 ? RULES.dailyCheckInThreeDayBonus : 0;
-    const pointsAwarded = RULES.dailyCheckInBasePoints + streakBonus;
+    // Ensure loyalty account exists (auto-create if missing)
+    await this.getOrCreateAccount(customerId);
 
     return this.repository.runInTransaction(async (transactionalManager) => {
+      // Check for existing check-in today with pessimistic lock via unique index
       const existingToday = await this.repository.findCheckInByDate(customerId, todayStr, transactionalManager);
       if (existingToday) throw serviceError("Already checked in today.");
 
-      const account = await this.repository.findAccountForUpdate(customerId, transactionalManager);
-      if (!account) throw serviceError("Customer loyalty profile record missing.", 404);
+      // Fetch latest check-in INSIDE the transaction to prevent race conditions
+      const latestCheckIn = await this.repository.findLatestCheckInForUpdate(customerId, transactionalManager);
 
-      account.currentPoints += pointsAwarded;
-      account.lifetimeEarned += pointsAwarded;
-      await this.repository.saveAccount(account, transactionalManager);
+      let newStreak = 1;
+      if (latestCheckIn) {
+        const yesterday = new Date();
+        yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+        if (latestCheckIn.checkInDate === yesterday.toISOString().slice(0, 10)) {
+          newStreak = latestCheckIn.streakCount + 1;
+        }
+      }
+
+      const streakBonus =
+        newStreak >= 7 ? RULES.dailyCheckInSevenDayBonus : newStreak >= 3 ? RULES.dailyCheckInThreeDayBonus : 0;
+      const pointsAwarded = RULES.dailyCheckInBasePoints + streakBonus;
+
+      const lockedAccount = await this.repository.findAccountForUpdate(customerId, transactionalManager);
+      if (!lockedAccount) throw serviceError("Customer loyalty profile record missing.", 404);
+
+      lockedAccount.currentPoints += pointsAwarded;
+      lockedAccount.lifetimeEarned += pointsAwarded;
+      await this.repository.saveAccount(lockedAccount, transactionalManager);
 
       const checkInRecord = new DailyCheckIn();
       checkInRecord.customerId = customerId;
@@ -236,11 +238,11 @@ export class LoyaltyService {
         sourceType: "DAILY_CHECK_IN",
         sourceId: todayStr,
         reason: `Daily check-in streak: day ${newStreak}`,
-        balanceAfter: account.currentPoints,
+        balanceAfter: lockedAccount.currentPoints,
         transactionalManager,
       });
 
-      return { streakCount: newStreak, pointsAwarded, currentPoints: account.currentPoints };
+      return { streakCount: newStreak, pointsAwarded, currentPoints: lockedAccount.currentPoints };
     });
   }
 

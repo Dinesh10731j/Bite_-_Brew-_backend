@@ -129,6 +129,14 @@ export class LoyaltyRepository {
     });
   }
 
+  findLatestCheckInForUpdate(customerId: string, transactionalManager: EntityManager) {
+    return transactionalManager.findOne(DailyCheckIn, {
+      where: { customerId },
+      order: { checkInDate: "DESC", createdAt: "DESC" },
+      lock: { mode: "pessimistic_write" },
+    });
+  }
+
   findCheckInByDate(customerId: string, checkInDate: string, transactionalManager?: EntityManager) {
     const manager = transactionalManager || this.checkInRepo.manager;
     return manager.findOne(DailyCheckIn, { where: { customerId, checkInDate } });

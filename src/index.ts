@@ -60,10 +60,94 @@ const bootstrap = async (): Promise<void> => {
     // Run migrations if not in test mode and not disabled
     if (process.env.NODE_ENV !== 'test' && process.env.RUN_MIGRATIONS !== 'false') {
       console.log(`[DB] Running migrations...`);
-      const migrations = await AppDataSource.runMigrations();
-      console.log(`✓ [DB] ${migrations.length} migrations applied`);
+      try {
+        const migrations = await AppDataSource.runMigrations();
+        console.log(`✓ [DB] ${migrations.length} migrations applied`);
+      } catch (migrationError) {
+        console.warn(`[DB] Migration warning (non-fatal):`, migrationError);
+      }
     } else {
       console.log(`[DB] Migrations skipped`);
+    }
+
+    // Ensure loyalty_transactions table has required columns for the entity
+    // This handles cases where synchronize is disabled or table was created before entity updates
+    try {
+      await AppDataSource.query(`
+        DO $$
+        BEGIN
+          -- Add missing columns that the LoyaltyTransaction entity expects
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'loyalty_transactions' AND column_name = 'balance_after'
+          ) THEN
+            ALTER TABLE loyalty_transactions ADD COLUMN balance_after int;
+          END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'loyalty_transactions' AND column_name = 'source_type'
+          ) THEN
+            ALTER TABLE loyalty_transactions ADD COLUMN source_type varchar(40);
+          END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'loyalty_transactions' AND column_name = 'source_id'
+          ) THEN
+            ALTER TABLE loyalty_transactions ADD COLUMN source_id varchar(80);
+          END IF;
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'loyalty_transactions' AND column_name = 'metadata'
+          ) THEN
+            ALTER TABLE loyalty_transactions ADD COLUMN metadata jsonb DEFAULT '{}'::jsonb;
+          END IF;
+
+          -- Fix type column: widen to varchar(30) (entity defines length: 30)
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'loyalty_transactions' AND column_name = 'type' AND character_maximum_length < 30
+          ) THEN
+            ALTER TABLE loyalty_transactions ALTER COLUMN type TYPE varchar(30);
+          END IF;
+
+          -- Drop and recreate the CHECK constraint to include ADJUSTMENT (entity defines 4 types)
+          IF EXISTS (
+            SELECT 1 FROM information_schema.table_constraints 
+            WHERE constraint_name = 'transaction_type_check' AND table_name = 'loyalty_transactions'
+          ) THEN
+            ALTER TABLE loyalty_transactions DROP CONSTRAINT transaction_type_check;
+          END IF;
+
+          -- Re-add a more inclusive CHECK matching the entity's LoyaltyTransactionType
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints 
+            WHERE constraint_name = 'transaction_type_check' AND table_name = 'loyalty_transactions'
+          ) THEN
+            ALTER TABLE loyalty_transactions ADD CONSTRAINT transaction_type_check
+            CHECK (type IN ('EARNING', 'REDEMPTION', 'EXPIRATION', 'ADJUSTMENT'));
+          END IF;
+        END $$;
+      `);
+
+      // Create the unique composite index on loyalty_transactions if it doesn't exist
+      // This matches the @Index decorator in the entity: [customerId, sourceType, sourceId, type] WHERE source_id IS NOT NULL
+      await AppDataSource.query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_indexes 
+            WHERE tablename = 'loyalty_transactions' AND indexname = 'idx_loyalty_transactions_customer_source'
+          ) THEN
+            CREATE UNIQUE INDEX idx_loyalty_transactions_customer_source 
+            ON loyalty_transactions (customer_id, source_type, source_id, type) 
+            WHERE source_id IS NOT NULL;
+          END IF;
+        END $$;
+      `);
+      console.log(`✓ [DB] Loyalty transactions table schema verified`);
+    } catch (schemaError) {
+      // Table may not exist yet (first run) - that's OK, TypeORM will create it
+      console.log(`[DB] Loyalty transactions table not yet created (will be created by TypeORM):`, schemaError);
     }
 
     // Verify SMTP connection

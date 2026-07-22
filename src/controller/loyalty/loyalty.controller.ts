@@ -7,10 +7,25 @@ import { LoyaltyService } from "../../service/loyalty/loyalty.service";
 const loyaltyService = new LoyaltyService(new LoyaltyRepository());
 
 const sendServiceError = (res: Response, error: any) => {
+  // Log the actual error for debugging
+  if (error?.stack) {
+    console.error('[sendServiceError]', error);
+  } else if (error) {
+    console.error('[sendServiceError]', error.message || error);
+  }
+
+  // Handle TypeORM QueryFailedError (unique violation, etc.)
+  if (error?.driverError?.code === '23505') {
+    return res.status(HTTP_STATUS.CONFLICT).json({
+      message: 'Duplicate entry detected. The resource already exists.',
+    });
+  }
+
   const statusCode = Number(error?.statusCode);
   if (Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 600) {
-    return res.status(statusCode).json({ message: error.message });
+    return res.status(statusCode).json({ message: error.message || Message.INTERNAL_SERVER_ERROR });
   }
+
   return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
 };
 

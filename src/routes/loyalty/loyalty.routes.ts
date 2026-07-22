@@ -118,7 +118,7 @@ router.get(
 router.patch(
   "/admin/config",
   jwtVerify,
-  (req, res, next) => roleCheck(["ADMIN"])(req, res, next),
+  (req, res, next) => roleCheck(["admin"])(req, res, next),
   LoyaltyController.updateConfig
 );
 
@@ -130,7 +130,7 @@ router.patch(
 router.post(
   "/admin/adjust-points",
   jwtVerify,
-  (req, res, next) => roleCheck(["ADMIN"])(req, res, next),
+  (req, res, next) => roleCheck(["admin"])(req, res, next),
   requestValidation(ManualPointsAdjustmentDto),
   LoyaltyController.adjustPoints
 );
@@ -143,7 +143,7 @@ router.post(
 router.post(
   "/admin/catalog",
   jwtVerify,
-  (req, res, next) => roleCheck(["ADMIN"])(req, res, next),
+  (req, res, next) => roleCheck(["admin"])(req, res, next),
   requestValidation(CreateRewardCatalogItemDto),
   LoyaltyController.createRewardCatalogItem
 );
@@ -156,7 +156,7 @@ router.post(
 router.get(
   "/admin/analytics",
   jwtVerify,
-  (req, res, next) => roleCheck(["ADMIN"])(req, res, next),
+  (req, res, next) => roleCheck(["admin"])(req, res, next),
   LoyaltyController.getLoyaltyAnalytics
 );
 
