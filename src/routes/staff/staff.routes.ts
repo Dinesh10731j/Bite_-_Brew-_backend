@@ -8,7 +8,7 @@ import { cacheGet } from "../../middleware/cache.middleware";
 const router = Router();
 
 
-router.get("/",cacheGet({ namespace: "staff", ttlSeconds: 120 }),rateLimit ,StaffController.list);
+router.get("/",cacheGet({ namespace: "staff", ttlSeconds: 120 }) ,StaffController.list);
 router.post("/", jwtVerify, roleCheck(["admin", "manager"]), rateLimit, parseSingleImageUpload, StaffController.create);
 router.get("/:id", cacheGet({ namespace: "staff", ttlSeconds: 120 }),jwtVerify, roleCheck(["admin", "manager"]), rateLimit, StaffController.getById);
 router.patch("/:id", jwtVerify, roleCheck(["admin", "manager"]), rateLimit, parseSingleImageUpload, StaffController.update);
