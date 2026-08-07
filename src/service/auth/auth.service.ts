@@ -5,25 +5,78 @@ import { getPerfTracker } from '../../perf/perfContext';
 
 import { HTTP_STATUS } from "../../constant/statusCode.interface";
 import { Message } from "../../constant/message.interface";
-import { UserRole } from "../../constant/enum.constant";
+import { UserRole, LoginStatus, SecurityEventType, AuditAction } from "../../constant/enum.constant";
 import { SignInDTO, SignUpDTO } from "../../dto/user/user.dto";
 import { AuthRepository } from "../../repository/auth/auth.repository";
 import { ServiceResult } from "../../types/service_result";
 import { sendSmtpMail } from "../../configs/smtp.config";
 import { buildResetPasswordTemplate, buildResetPasswordTextTemplate } from "../../templates/auth.template";
+import { envConfig } from "../../configs/env.config";
+import { SessionService } from "../security/session.service";
+import { DeviceService, DeviceFingerprintInput } from "../security/device.service";
+import { RefreshTokenService } from "../security/refreshToken.service";
+import { RegistrationProtectionService, RegistrationContext } from "../security/registrationProtection.service";
+import { LoginMonitorService } from "../security/loginMonitor.service";
+import { SecurityEventService } from "../security/securityEvent.service";
+import { SecurityAuditService } from "../security/securityAudit.service";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || process.env.ACCESS_TOKEN_SECRET || "access_secret";
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || process.env.REFRESH_TOKEN_SECRET || "refresh_secret";
-const ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || "15m";
-const REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+const ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || envConfig.JWT_ACCESS_EXPIRES_IN || "15m";
+const REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || envConfig.JWT_REFRESH_EXPIRES_IN || "30d";
+
+export interface AuthContext {
+  ip: string;
+  userAgent?: string;
+  device?: DeviceFingerprintInput;
+  country?: string;
+  city?: string;
+}
+
+export interface AuthTokens {
+  access_token: string;
+  refresh_token: string;
+  session_id: string;
+}
 
 export class AuthService {
+  private readonly sessionService = new SessionService();
+  private readonly deviceService = new DeviceService();
+  private readonly refreshTokenService = new RefreshTokenService();
+  private readonly registrationProtection = new RegistrationProtectionService();
+  private readonly loginMonitor = new LoginMonitorService();
+  private readonly securityEvent = new SecurityEventService();
+  private readonly audit = new SecurityAuditService();
+
   constructor(private readonly authRepository: AuthRepository) {}
 
-  async signup(dto: SignUpDTO) {
+  /**
+   * Sign up a new user with registration anti-abuse protection.
+   */
+  async signup(dto: SignUpDTO, ctx?: AuthContext) {
     const email = dto.email.trim().toLowerCase();
     const password = dto.password.trim();
     const name = dto.name.trim();
+
+    // Registration anti-abuse check.
+    if (ctx) {
+      const regCtx: RegistrationContext = {
+        ip: ctx.ip,
+        deviceHash: ctx.device?.visitorId ? this.deviceService.hashFingerprint(ctx.device) : undefined,
+        email,
+        userAgent: ctx.userAgent,
+        country: ctx.country,
+        city: ctx.city,
+      };
+      const check = await this.registrationProtection.checkRegistration(regCtx);
+      if (!check.allowed) {
+        await this.registrationProtection.recordRegistration(regCtx, check);
+const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCode?: number };
+        err.statusCode = HTTP_STATUS.TOO_MANY_REQUESTS;
+        throw err;
+      }
+      await this.registrationProtection.recordRegistration(regCtx, { allowed: true, status: check.status });
+    }
 
     const existing = await this.authRepository.findByEmail(email);
     if (existing) {
@@ -38,25 +91,17 @@ export class AuthService {
       role: UserRole.USER,
     });
 
-    const access_token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      ACCESS_SECRET as jwt.Secret,
-      { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions
-    );
-    const refresh_token = jwt.sign(
-      { userId: user.id },
-      REFRESH_SECRET as jwt.Secret,
-      { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions
-    );
+    await this.audit.audit({ userId: user.id, action: AuditAction.SIGNUP, ipAddress: ctx?.ip });
+    await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.REGISTRATION, ipAddress: ctx?.ip, isHighRisk: false });
 
-    return {
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
-      access_token,
-      refresh_token,
-    };
+    // Create session + tokens for immediate sign-in.
+    return this.issueTokens(user, ctx);
   }
 
-  async signin(dto: SignInDTO) {
+  /**
+   * Sign in an existing user with login monitoring, account lock, single-active-session.
+   */
+  async signin(dto: SignInDTO, ctx?: AuthContext): Promise<{ tokens: AuthTokens; user: { id: string; name: string; email: string; role: string }; revokedSessionId?: string }> {
     const email = dto.email.trim().toLowerCase();
     const password = dto.password.trim();
 
@@ -67,77 +112,156 @@ export class AuthService {
       : await this.authRepository.findByEmail(email);
 
     if (!user) {
+      await this.audit.audit({ action: AuditAction.LOGIN_FAILED, ipAddress: ctx?.ip, description: "unknown email" });
       throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
     }
 
-    if (tracker) {
-      const ok = await tracker.measure('bcrypt.compare', () => bcrypt.compare(password, user.password));
-      if (!ok) throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
-    } else {
-      const ok = await bcrypt.compare(password, user.password);
-      if (!ok) throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
+    // Account lock check.
+    if (this.loginMonitor.isAccountLocked(user)) {
+      await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.ACCOUNT_LOCKED, ipAddress: ctx?.ip, isHighRisk: true });
+      const err = new Error(Message.ACCOUNT_LOCKED) as Error & { statusCode?: number };
+      err.statusCode = HTTP_STATUS.FORBIDDEN;
+      throw err;
     }
 
-    const access_token = tracker
-      ? await tracker.measure('jwt.access', () =>
-          Promise.resolve(
-            jwt.sign(
-              { userId: user.id, email: user.email, role: user.role },
-              ACCESS_SECRET as jwt.Secret,
-              { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions,
-            ),
-          ),
-        )
-      : jwt.sign(
-          { userId: user.id, email: user.email, role: user.role },
-          ACCESS_SECRET as jwt.Secret,
-          { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions,
-        );
+    let ok: boolean;
+    if (tracker) {
+      ok = await tracker.measure('bcrypt.compare', () => bcrypt.compare(password, user.password));
+    } else {
+      ok = await bcrypt.compare(password, user.password);
+    }
+    if (!ok) {
+      const { locked } = await this.loginMonitor.recordFailedLogin(user, ctx?.ip || "unknown");
+      await this.audit.audit({ userId: user.id, action: AuditAction.LOGIN_FAILED, ipAddress: ctx?.ip });
+      await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.LOGIN_FAILED, ipAddress: ctx?.ip, isHighRisk: true });
+      if (locked) {
+        const err = new Error(Message.ACCOUNT_LOCKED) as Error & { statusCode?: number };
+        err.statusCode = HTTP_STATUS.FORBIDDEN;
+        throw err;
+      }
+      throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
+    }
 
-    const refresh_token = tracker
-      ? await tracker.measure('jwt.refresh', () =>
-          Promise.resolve(
-            jwt.sign(
-              { userId: user.id },
-              REFRESH_SECRET as jwt.Secret,
-              { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions,
-            ),
-          ),
-        )
-      : jwt.sign(
-          { userId: user.id },
-          REFRESH_SECRET as jwt.Secret,
-          { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions,
-        );
+    // Reset failed counters on success.
+    await this.loginMonitor.resetFailedLogin(user, ctx?.ip || "unknown");
+
+    // Issue tokens + session (enforces single active session).
+    const result = await this.issueTokens(user, ctx);
+
+    await this.audit.audit({ userId: user.id, action: AuditAction.LOGIN, ipAddress: ctx?.ip });
+    await this.loginMonitor.recordLoginHistory({
+      userId: user.id,
+      sessionId: result.tokens.session_id,
+      ip: ctx?.ip || "unknown",
+      country: ctx?.country,
+      city: ctx?.city,
+      browser: ctx?.device?.browser || ctx?.userAgent,
+      os: ctx?.device?.os,
+      platform: ctx?.device?.platform,
+      status: LoginStatus.SUCCESS,
+    });
+    await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.LOGIN, ipAddress: ctx?.ip, sessionId: result.tokens.session_id });
 
     return {
-      access_token,
-      refresh_token,
+      tokens: result.tokens,
+      revokedSessionId: result.revokedSessionId,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
     };
   }
 
+  /**
+   * Issue access token + refresh token + session for a user.
+   * Enforces Netflix-style single active session.
+   */
+  private async issueTokens(user: { id: string }, ctx?: AuthContext): Promise<{ tokens: AuthTokens; revokedSessionId?: string }> {
+    // Build device fingerprint.
+    const device = this.deviceService.buildDevice(ctx?.device || {});
+    const deviceHash = device.deviceHash;
 
-  async refreshAccessToken(refreshToken: string) {
-    const decoded = jwt.verify(refreshToken, REFRESH_SECRET as jwt.Secret) as { userId: string };
-    const user = await this.authRepository.findById(decoded.userId);
+    // Create session (single active session enforcement).
+    const { session, revokedSessionId } = await this.sessionService.createSession({
+      userId: user.id,
+      deviceHash,
+      ipAddress: ctx?.ip,
+      browser: device.browser,
+      os: device.os,
+      platform: device.platform,
+      screenResolution: device.screenResolution,
+      timezone: device.timezone,
+      language: device.language,
+      userAgent: ctx?.userAgent,
+      country: ctx?.country,
+      city: ctx?.city,
+    });
+
+    // Persist device record.
+    await this.deviceService.upsertDevice(device, user.id);
+    await this.deviceService.rememberDevice(deviceHash);
+
+    // Create refresh token (rotation).
+    const refreshToken = await this.refreshTokenService.createRefreshToken(user.id, session.sessionId);
+
+    // Build access token carrying sessionId.
+    const access_token = jwt.sign(
+      { userId: user.id, sessionId: session.sessionId, deviceHash, role: (user as { role?: string }).role },
+      ACCESS_SECRET as jwt.Secret,
+      { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions,
+    );
+
+    return {
+      tokens: {
+        access_token,
+        refresh_token: refreshToken.token,
+        session_id: session.sessionId,
+      },
+      revokedSessionId,
+    };
+  }
+
+  /**
+   * Refresh the access token with rotation + reuse detection.
+   */
+  async refreshAccessToken(refreshToken: string, ctx?: AuthContext): Promise<AuthTokens> {
+    const { userId, sessionId, newToken } = await this.refreshTokenService.verifyAndRotate(refreshToken);
+
+    const user = await this.authRepository.findById(userId);
     if (!user) {
       throw new Error(Message.UNAUTHORIZED);
     }
+    if (!user.isActive) {
+      throw new Error(Message.FORBIDDEN);
+    }
+    if (this.loginMonitor.isAccountLocked(user)) {
+      throw new Error(Message.ACCOUNT_LOCKED);
+    }
 
+    // Validate the session is still active.
+    const validation = await this.sessionService.validateSession(userId, sessionId);
+    if (!validation.valid) {
+      throw new Error(Message.UNAUTHORIZED);
+    }
+
+    // Build a new access token for the same session.
     const access_token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, sessionId, deviceHash: validation.session?.deviceHash, role: user.role },
       ACCESS_SECRET as jwt.Secret,
-      { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions
+      { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions,
     );
 
-    const refresh_token = jwt.sign(
-      { userId: user.id },
-      REFRESH_SECRET as jwt.Secret,
-      { expiresIn: REFRESH_EXPIRES_IN } as jwt.SignOptions
-    );
+    await this.audit.audit({ userId, action: AuditAction.REFRESH_ROTATION, ipAddress: ctx?.ip, sessionId });
+    await this.securityEvent.recordEvent({ userId, type: SecurityEventType.REFRESH_TOKEN_ROTATED, ipAddress: ctx?.ip, sessionId });
 
-    return { access_token, refresh_token };
+    return { access_token, refresh_token: newToken.token, session_id: sessionId };
+  }
+
+  /**
+   * Logout: revoke the current session and refresh tokens.
+   */
+  async logout(userId: string, sessionId: string): Promise<void> {
+    await this.sessionService.revokeSession(sessionId, userId);
+    await this.loginMonitor.markLogout(sessionId);
+    await this.audit.audit({ userId, action: AuditAction.LOGOUT, sessionId });
+    await this.securityEvent.recordEvent({ userId, type: SecurityEventType.LOGOUT, sessionId });
   }
 
   async forgotPassword(email: string): Promise<ServiceResult<{ resetUrl?: string }>> {
@@ -177,13 +301,11 @@ export class AuthService {
         }),
       });
     } catch (error) {
-      // Log the reset URL to help debugging when SMTP isn't configured or fails
       console.error("Forgot password email delivery failed:", error);
       console.error("Password reset URL (for debugging):", resetUrl);
       return { status: HTTP_STATUS.INTERNAL_SERVER_ERROR, error: "Unable to deliver password reset email" };
     }
 
-    // Include resetUrl in service result `data` so callers (in non-production) can expose it for debugging
     return { status: HTTP_STATUS.OK, data: { resetUrl } };
   }
 
@@ -207,10 +329,17 @@ export class AuthService {
     }
 
     user.password = await bcrypt.hash(cleanedPassword, 10);
+    user.passwordChangedAt = new Date();
     delete user.resetToken;
     delete user.resetTokenExpiry;
     await this.authRepository.saveUser(user);
 
-    return { status: HTTP_STATUS.OK };
+    // Password reset invalidates all sessions.
+    await this.sessionService.revokeAllUserSessions(user.id, "password_reset");
+    await this.refreshTokenService.revokeAllUserTokens(user.id, "password_reset");
+    await this.audit.audit({ userId: user.id, action: AuditAction.PASSWORD_RESET });
+    await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.PASSWORD_RESET, isHighRisk: true });
+
+return { status: HTTP_STATUS.OK };
   }
 }

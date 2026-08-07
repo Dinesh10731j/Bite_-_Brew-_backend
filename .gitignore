@@ -4,13 +4,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-//
-
 # Build outputs
 dist/
 build/
 *.log
 .next/
+
+# Build & test output artifacts
+build-check.txt
+test-output.txt
 
 # Environment variables
 .env

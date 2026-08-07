@@ -1,27 +1,43 @@
-# Loyalty Check-in Fix TODO
+# Enterprise Auth & Session Security Implementation
 
-## Priority Fixes - All DONE ✅
+## Phase A — Foundation & Configuration
+- [x] Extend `src/configs/env.config.ts` with security/session/rate-limit/registration env vars
+- [x] Enhance `src/configs/redis.config.ts` with namespaced helpers (session/refresh/device/login_attempt/registration/rate_limit) + pipelining + TTLs
+- [x] Add security constants to `enum.constant.ts` and `message.interface.ts`
 
-### 1. Fix `processDailyCheckIn` in `src/service/loyalty/loyalty.service.ts`
-- [x] 1a. Auto-create loyalty account if it doesn't exist (call `getOrCreateAccount`)
-- [x] 1b. Move `findLatestCheckIn` INSIDE the transaction to prevent race conditions
-- [x] 1c. Remove the redundant `existingToday` check (now handled by atomic transaction)
+## Phase B — Database (Entities + Migrations)
+- [x] Create security entities in `src/entities/security/`: Session, Device, RefreshToken, LoginHistory, RegistrationAttempt, SecurityEvent, AuditLog
+- [x] Extend `User` entity with account-protection fields
+- [x] Create TypeORM migrations + register in `psqlDb.config.ts`
 
-### 2. Fix error handling in `src/controller/loyalty/loyalty.controller.ts`
-- [x] 2a. Add `console.error` to `sendServiceError` with full error details
-- [x] 2b. Make `sendServiceError` handle null/non-standard errors gracefully
-- [x] 2c. Map TypeORM `QueryFailedError` (23505 unique violation) to HTTP 409 Conflict
+## Phase C — Security Services
+- [x] DeviceService — fingerprint hashing, UA/browser/OS parsing
+- [x] SessionService — Redis session create/validate/revoke + single-active-session
+- [x] RefreshTokenService — rotation + reuse detection
+- [x] RegistrationProtectionService — IP/device/velocity anti-abuse + whitelist
+- [x] LoginMonitorService — failed-login tracking + account lock
+- [x] SecurityAuditService — structured logging with correlation IDs
+- [x] SecurityEventService — persist security events
 
-### 3. Add global error middleware in `src/configs/app.ts`
-- [x] 3a. Add Express error-handling middleware (4 params) as the LAST middleware
-- [x] 3b. Import `Message` constant for consistent error messages
+## Phase D — Middleware
+- [x] Enhance `auth.middleware.ts` (jwtVerify) to validate JWT + Redis session + session match + account/lock status + device fingerprint
+- [x] Add endpoint-specific rate limiters (login, registration, password reset, refresh, public APIs)
+- [x] Add centralized error handling
+- [x] Allow device-fingerprint CORS headers
 
-### 4. Repository update
-- [x] 4a. Add `findLatestCheckInForUpdate` method with pessimistic lock
+## Phase E — Auth Refactor + Socket
+- [x] Refactor `AuthService` to integrate sessions, device, refresh rotation, single-active-session
+- [x] Refactor `AuthController` (backward compatible) + session-id cookie
+- [x] Socket.IO authentication + FORCE_LOGOUT live event + disconnect old socket
+- [x] Centralize forced-logout helper (ForceLogoutService)
 
-## Verification
-- [ ] Restart server
-- [ ] Test check-in endpoint with valid JWT
-- [ ] Test check-in without existing loyalty account (auto-create)
-- [ ] Test double check-in on same day (should return 400)
+## Phase F — Session & Login-History APIs
+- [x] SessionController + routes (list, revoke selected, revoke others, logout all)
+- [x] Login-history listing APIs
+- [x] Extend SessionService with revoke-others/all-except-current helpers
 
+## Phase G — Testing
+- [x] Unit + integration tests (auth, sessions, refresh rotation, rate limiting, registration limits, socket force-logout, middleware)
+
+## Phase H — Deliverables Documentation
+- [x] `docs/SECURITY.md`, update `API_DOCUMENTATION.md`, deployment, rollback strategy, migration guide

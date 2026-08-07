@@ -5,6 +5,15 @@ declare global {
     interface Request {
       user?: User;
       validatedData?: unknown;
+      sessionId?: string;
+      deviceHash?: string;
+      requestId?: string;
+      session?: {
+        sessionId: string;
+        userId: string;
+        deviceHash?: string;
+        ipAddress?: string;
+      };
     }
   }
 }

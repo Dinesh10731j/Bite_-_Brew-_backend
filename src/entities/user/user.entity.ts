@@ -26,6 +26,28 @@ export class User {
   @Column({ type: "timestamp", nullable: true })
   resetTokenExpiry?: Date;
 
+  // ===== Account Protection Fields =====
+  @Column({ default: false })
+  emailVerified!: boolean;
+
+  @Column({ default: true })
+  isActive!: boolean;
+
+  @Column({ default: 0 })
+  failedLoginAttempts!: number;
+
+  @Column({ type: "timestamp", nullable: true })
+  lockedUntil?: Date | null;
+
+  @Column({ type: "timestamp", nullable: true })
+  lastLoginAt?: Date | null;
+
+  @Column({ type: "timestamp", nullable: true })
+  passwordChangedAt?: Date | null;
+
+  @Column({ type: "timestamp", nullable: true })
+  emailVerifiedAt?: Date | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

@@ -24,15 +24,16 @@ const entityPaths = isTsRuntime
   ? ["src/**/*.entity.ts", "src/**/*.entities.ts", "src/**/*.entities/*.ts"]
   : ["dist/**/*.entity.js", "dist/**/*.entities.js", "dist/**/*.entities/*.js"];
 
-
-
+const migrationPaths = isTsRuntime
+  ? ["src/migrations/**/*.ts"]
+  : ["dist/migrations/**/*.js"];
 
 /**
  * PostgreSQL Connection Pool Configuration
- * 
+ *
  * TypeORM passes these settings to the underlying `pg` driver's Pool class.
  * Each application request borrows a connection from this pool:
- * 
+ *
  * 1. Request arrives → TypeORM calls AppDataSource.getRepository() or manager.query()
  * 2. If connection available in pool → Reuse it (no TCP handshake)
  * 3. If no connection available but max not reached → Create new connection
@@ -45,32 +46,32 @@ const poolConfig = {
   // Maximum number of connections to maintain in the pool
   // Prevents unbounded connection growth and database server overload
   max: envConfig.DB_POOL_MAX,
-  
+
   // Minimum number of connections to maintain idle (only applicable in some pool implementations)
   // Helps warm up connections and reduce initial query latency
   min: envConfig.DB_POOL_MIN,
-  
+
   // How long a connection can sit idle (milliseconds) before being closed
   // Frees server-side resources; default 30s is production-safe
   idleTimeoutMillis: envConfig.DB_POOL_IDLE_TIMEOUT_MS,
-  
+
   // How long to wait (milliseconds) for a connection to become available
   // Prevents indefinite hangs; 10s default balances responsiveness vs stability
   connectionTimeoutMillis: envConfig.DB_POOL_CONNECTION_TIMEOUT_MS,
-  
+
   // Keep alive packets to prevent connection timeouts on firewalls/proxies
   keepAlives: envConfig.DB_POOL_KEEP_ALIVE,
-  
+
   // Keep alive interval in seconds (default ~30s)
   keepAliveInitialDelaySeconds: 30,
-  
+
   // Application name for server-side query logging and connection identification
   // Visible in PostgreSQL pg_stat_activity for monitoring/debugging
   application_name: `bite-brew-${process.env.NODE_ENV || 'development'}`,
-  
+
   // Allow query cancellation and result streaming (statement_timeout awareness)
   statement_timeout: false,
-  
+
   // Enable connection reuse by verifying connection health on checkout
   // Helps detect stale/dead connections without waiting for query to fail
   connectionHealthCheck: true,
@@ -78,7 +79,7 @@ const poolConfig = {
 
 /**
  * SSL Configuration
- * 
+ *
  * Production: Enforce SSL (rejectUnauthorized: false only for self-signed certs in staging)
  * Development/Test: SSL optional (reduces certificate hassles)
  */
@@ -95,6 +96,7 @@ export const AppDataSource = new DataSource({
   database,
   ssl: sslConfig,
   entities: entityPaths,
+  migrations: migrationPaths,
   synchronize,
   logging: envConfig.DB_POOL_LOG_QUERIES,
   // Pass pool configuration to the underlying pg driver

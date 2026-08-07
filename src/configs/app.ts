@@ -11,7 +11,7 @@ import { corsOptions } from './cors.config';
 import { helmetOptions } from './helmet.config';
 import { getMetrics, metricsContentType, recordHttpRequest } from '../observability/metrics';
 import { requestContextMiddleware } from '../observability/context';
-import { Message } from '../constant/message.interface';
+import { errorHandler } from "../middleware/errorHandler.middleware";
 
 import http from "http";
 import { setupSocket } from "./socket.config";
@@ -84,27 +84,8 @@ const createApp = () => {
   // API base path /api/v1/bite-brew
   app.use('/api/v1/bite-brew', indexRouter);
 
-  // Global Express error-handling middleware (must be 4 args for Express to recognize it)
-  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    // Log the error for debugging
-    if (err?.stack) {
-      console.error('[GlobalErrorHandler]', err);
-    } else {
-      console.error('[GlobalErrorHandler]', err?.message || err || 'Unknown error');
-    }
-
-    // Handle known error shapes
-    const statusCode =
-      err?.statusCode && Number.isInteger(err.statusCode) && err.statusCode >= 400 && err.statusCode < 600
-        ? err.statusCode
-        : err?.status
-          ? Number(err.status)
-          : 500;
-
-    const message = err?.message || Message.INTERNAL_SERVER_ERROR;
-
-    res.status(statusCode).json({ message });
-  });
+// Global Express error-handling middleware (must be 4 args for Express to recognize it)
+  app.use(errorHandler);
 
   app.get('/metrics', async (_req, res) => {
     res.setHeader('Content-Type', metricsContentType);

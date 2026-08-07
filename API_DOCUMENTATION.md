@@ -79,6 +79,55 @@ Short explanation: Reset password using token sent by email.
   - `400` invalid token or bad payload
   - `404` user not found
 
+## Sessions (Session Dashboard)
+
+Protected by the session-aware auth middleware (`sessionAuth` / `jwtVerify`). All endpoints validate the JWT plus the active Redis session, account status, lock status, and (optionally) device fingerprint.
+
+### `GET /sessions`
+Short explanation: List the current user's sessions and identify the current device.
+- Auth: Yes (authenticated user)
+- Response:
+  - `200` with `{ message, data }` where `data` is an array of sessions each including `sessionId`, `isCurrent`, `isActive`, `device`, `ipAddress`, `status`, `lastActivityAt`, `revokedAt`, `createdAt`
+  - `401` unauthorized
+
+### `POST /sessions/:sessionId/revoke`
+Short explanation: Revoke a selected session (invalidates its refresh tokens and force-logs-out its live sockets).
+- Auth: Yes (authenticated user)
+- Path:
+  - `sessionId` (required)
+- Response:
+  - `200` session revoked
+  - `400` invalid request
+  - `404` session not found
+  - `401` unauthorized
+
+### `POST /sessions/revoke-others`
+Short explanation: Revoke all sessions except the current one.
+- Auth: Yes (authenticated user)
+- Response:
+  - `200` with `{ data: { revokedCount } }`
+  - `400` missing current session
+  - `401` unauthorized
+
+### `POST /sessions/logout-all`
+Short explanation: Logout all devices (revokes all sessions + tokens, clears cookies).
+- Auth: Yes (authenticated user)
+- Response:
+  - `200` sessions revoked
+  - `401` unauthorized
+
+## Login History
+
+### `GET /login-history`
+Short explanation: List recent login history for the current user (paginated).
+- Auth: Yes (authenticated user)
+- Query:
+  - `limit` (optional, default `20`, max `100`)
+  - `offset` (optional, default `0`)
+- Response:
+  - `200` with `{ message, data, pagination: { total, limit, offset } }`
+  - `401` unauthorized
+
 ## Users
 
 ### `GET /users`
