@@ -7,7 +7,7 @@ export class User {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @Column({ length: 120, nullable: true, default: "Unknown User" })
+  @Column({ type: "varchar", length: 120, nullable: true, default: "Unknown User" })
   name!: string;
 
   @Index()
@@ -20,7 +20,7 @@ export class User {
   @Column({ type: "enum", enum: UserRole, default: UserRole.USER })
   role!: UserRole;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   resetToken?: string;
 
   @Column({ type: "timestamp", nullable: true })

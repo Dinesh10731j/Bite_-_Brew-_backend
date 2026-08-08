@@ -10,7 +10,7 @@ export class Order {
   id!: string;
 
   @Index()
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   userId?: string;
 
   @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
@@ -20,10 +20,10 @@ export class Order {
   @Column()
   customerName!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   phone?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   email?: string;
 
   @Column({ type: "decimal", precision: 10, scale: 2 })
@@ -46,7 +46,7 @@ export class Order {
   @Column({ type: "enum", enum: OrderPriority, default: OrderPriority.MEDIUM })
   priority!: OrderPriority;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   tableNumber?: string;
 
   @Column({ type: "text", nullable: true })

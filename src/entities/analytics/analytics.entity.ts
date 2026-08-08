@@ -11,31 +11,31 @@ export class VisitLog {
   user?: User;
 
   @Index()
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   userId?: string;
 
   @Column()
   ip!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   country?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   city?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   device?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   browser?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   os?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   referrer?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   sessionId?: string;
 
   @Column({ default: false })

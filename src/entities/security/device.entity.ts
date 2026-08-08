@@ -14,40 +14,40 @@ export class Device {
   id!: string;
 
   @Index()
-  @Column({ length: 128 })
+  @Column({ type: "varchar", length: 128 })
   deviceHash!: string;
 
-  @Column({ length: 128, nullable: true })
+  @Column({ type: "varchar", length: 128, nullable: true })
   userId?: string | null;
 
-  @Column({ length: 128, nullable: true })
+  @Column({ type: "varchar", length: 128, nullable: true })
   browser?: string | null;
 
-  @Column({ length: 128, nullable: true })
+  @Column({ type: "varchar", length: 128, nullable: true })
   os?: string | null;
 
-  @Column({ length: 32, nullable: true })
+  @Column({ type: "varchar", length: 32, nullable: true })
   platform?: string | null;
 
-  @Column({ length: 32, nullable: true })
+  @Column({ type: "varchar", length: 32, nullable: true })
   screenResolution?: string | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   timezone?: string | null;
 
-  @Column({ length: 32, nullable: true })
+  @Column({ type: "varchar", length: 32, nullable: true })
   language?: string | null;
 
   @Column({ type: "text", nullable: true })
   userAgent?: string | null;
 
-  @Column({ default: false })
+  @Column({ type: "boolean", default: false })
   isTrusted!: boolean;
 
-  @Column({ default: 0 })
+  @Column({ type: "int", default: 0 })
   riskScore!: number;
 
-  @Column({ length: 32, nullable: true })
+  @Column({ type: "varchar", length: 32, nullable: true })
   riskLevel?: string | null;
 
   @Column({ type: "timestamp", nullable: true })

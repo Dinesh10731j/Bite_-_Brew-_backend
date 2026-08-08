@@ -29,46 +29,46 @@ export class Session {
   @Column({ length: 80 })
   sessionId!: string;
 
-  @Column({ length: 128, nullable: true })
+  @Column({ type: "varchar", length: 128, nullable: true })
   refreshTokenHash?: string | null;
 
-  @Column({ length: 128, nullable: true })
+  @Column({ type: "varchar", length: 128, nullable: true })
   deviceHash?: string | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   deviceId?: string | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   ipAddress?: string | null;
 
   @Column({ type: "enum", enum: SessionStatus, default: SessionStatus.ACTIVE })
   status!: SessionStatus;
 
-  @Column({ length: 128, nullable: true })
+  @Column({ type: "varchar", length: 128, nullable: true })
   browser?: string | null;
 
-  @Column({ length: 128, nullable: true })
+  @Column({ type: "varchar", length: 128, nullable: true })
   os?: string | null;
 
-  @Column({ length: 32, nullable: true })
+  @Column({ type: "varchar", length: 32, nullable: true })
   platform?: string | null;
 
-  @Column({ length: 32, nullable: true })
+  @Column({ type: "varchar", length: 32, nullable: true })
   screenResolution?: string | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   timezone?: string | null;
 
-  @Column({ length: 32, nullable: true })
+  @Column({ type: "varchar", length: 32, nullable: true })
   language?: string | null;
 
   @Column({ type: "text", nullable: true })
   userAgent?: string | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   country?: string | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   city?: string | null;
 
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
@@ -80,7 +80,7 @@ export class Session {
   @Column({ type: "timestamp", nullable: true })
   revokedAt?: Date | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   revokedReason?: string | null;
 
   @CreateDateColumn()

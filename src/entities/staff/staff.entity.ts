@@ -13,7 +13,7 @@ export class Staff {
   @Column({ length: 180 })
   email!: string;
 
-  @Column({ length: 255, nullable: true })
+  @Column({ type: "varchar", length: 255, nullable: true })
   image?: string;
 
   @Column({ length: 80 })

@@ -25,22 +25,22 @@ export class RefreshToken {
   @JoinColumn({ name: "userId" })
   user!: User;
 
-  @Column({ length: 80 })
+  @Column({ type: "varchar", length: 80 })
   tokenId!: string;
 
-  @Column({ length: 128 })
+  @Column({ type: "varchar", length: 128 })
   tokenHash!: string;
 
-  @Column({ length: 80, nullable: true })
+  @Column({ type: "varchar", length: 80, nullable: true })
   sessionId?: string | null;
 
-  @Column({ default: false })
+  @Column({ type: "boolean", default: false })
   isRevoked!: boolean;
 
   @Column({ type: "timestamp", nullable: true })
   revokedAt?: Date | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   revokedReason?: string | null;
 
   @Column({ type: "timestamp" })
@@ -49,7 +49,7 @@ export class RefreshToken {
   @Column({ type: "timestamp", nullable: true })
   usedAt?: Date | null;
 
-  @Column({ length: 80, nullable: true })
+  @Column({ type: "varchar", length: 80, nullable: true })
   replacedBy?: string | null;
 
   @CreateDateColumn()

@@ -37,7 +37,7 @@ export class MenuItem {
   @Column({ type: "text", nullable: true })
   description?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   image?: string;
 
   @Index()

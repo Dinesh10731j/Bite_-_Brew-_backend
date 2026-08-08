@@ -20,7 +20,7 @@ export class Notification {
     @Column({ default: false })
     isRead!: boolean;
 
-    @Column({ nullable: true })
+    @Column({ type: "varchar", nullable: true })
     actionLink?: string;
 
     @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
@@ -28,7 +28,7 @@ export class Notification {
     user?: User;
 
     @Index()
-    @Column({ nullable: true })
+    @Column({ type: "varchar", nullable: true })
     userId?: string;
 
     @CreateDateColumn()

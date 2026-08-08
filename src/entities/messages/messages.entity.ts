@@ -9,10 +9,10 @@ export class Message {
   @Column()
   senderName!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   phone?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   email?: string;
 
   @Column({ type: "text" })

@@ -15,13 +15,13 @@ export class RegistrationAttempt {
   id!: string;
 
   @Index()
-  @Column({ length: 64 })
+  @Column({ type: "varchar", length: 64 })
   ipAddress!: string;
 
-  @Column({ length: 128, nullable: true })
+  @Column({ type: "varchar", length: 128, nullable: true })
   deviceHash?: string | null;
 
-  @Column({ length: 180, nullable: true })
+  @Column({ type: "varchar", length: 180, nullable: true })
   email?: string | null;
 
   @Column({ type: "text", nullable: true })
@@ -33,10 +33,10 @@ export class RegistrationAttempt {
   @Column({ type: "text", nullable: true })
   reason?: string | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   country?: string | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   city?: string | null;
 
   @CreateDateColumn()

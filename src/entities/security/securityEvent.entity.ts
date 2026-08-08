@@ -15,19 +15,19 @@ export class SecurityEvent {
   id!: string;
 
   @Index()
-  @Column({ length: 80, nullable: true })
+  @Column({ type: "varchar", length: 80, nullable: true })
   userId?: string | null;
 
   @Column({ type: "enum", enum: SecurityEventType })
   type!: SecurityEventType;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ type: "varchar", length: 64, nullable: true })
   ipAddress?: string | null;
 
-  @Column({ length: 128, nullable: true })
+  @Column({ type: "varchar", length: 128, nullable: true })
   deviceHash?: string | null;
 
-  @Column({ length: 80, nullable: true })
+  @Column({ type: "varchar", length: 80, nullable: true })
   sessionId?: string | null;
 
   @Column({ type: "jsonb", nullable: true })
