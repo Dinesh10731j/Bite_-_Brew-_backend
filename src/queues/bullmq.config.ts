@@ -1,20 +1,14 @@
 import { Queue, QueueOptions, WorkerOptions } from 'bullmq';
-import IORedis from 'ioredis';
+import { redisClient } from '../configs/redis.config';
 
 /**
  * BullMQ configuration and connection.
+ *
+ * Reuses the shared Upstash Redis client so all replicas share the same
+ * queue infrastructure. `maxRetriesPerRequest: null` is already configured on
+ * the shared client (required by BullMQ).
  */
-const redisUrl = process.env.REDIS_URL;
-
-export const redisConnection = redisUrl
-  ? new IORedis(redisUrl, { maxRetriesPerRequest: null, lazyConnect: true })
-  : new IORedis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      maxRetriesPerRequest: null,
-      lazyConnect: true,
-    });
+export const redisConnection = redisClient;
 
 export const queueOptions: QueueOptions = { connection: redisConnection };
 export const workerOptions: WorkerOptions = { connection: redisConnection };

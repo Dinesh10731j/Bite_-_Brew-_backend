@@ -4,10 +4,15 @@ import { AppDataSource } from './configs/psqlDb.config';
 import { envConfig } from './configs/env.config';
 import { verifySmtpConnection } from './configs/smtp.config';
 import { redisClient, verifyRedisConnection } from './configs/redis.config';
-import './queue/email.worker';
+import { getInstanceId } from './configs/instance.config';
 import { initObservability } from './observability/telemetryInit';
+import { onShutdown, registerSignalHandlers } from './infrastructure/shutdown';
+import { logger } from './infrastructure/logger';
+import { emailWorker } from './queue/email.worker';
 
 initObservability();
+
+logger.info('instance.start', { instance: getInstanceId(), node: process.version, pid: process.pid });
 
 const { server } = createApp();
 
@@ -49,54 +54,58 @@ const getPoolStats = (): string => {
 const bootstrap = async (): Promise<void> => {
   try {
     // Initialize PostgreSQL connection with connection pooling
-    console.log(`[DB] Initializing PostgreSQL connection pool...`);
-    console.log(`[DB] Pool config: max=${envConfig.DB_POOL_MAX}, min=${envConfig.DB_POOL_MIN}, idleTimeout=${envConfig.DB_POOL_IDLE_TIMEOUT_MS}ms`);
-    
+    logger.info('db.init', {
+      poolMax: envConfig.DB_POOL_MAX,
+      poolMin: envConfig.DB_POOL_MIN,
+      idleTimeoutMs: envConfig.DB_POOL_IDLE_TIMEOUT_MS,
+    });
+
     await AppDataSource.initialize();
-    
+
     const poolStats = getPoolStats();
-    console.log(`✓ [DB] PostgreSQL connected${poolStats ? ` ${poolStats}` : ''}`);
+    logger.info('db.connected', poolStats ? { poolStats } : {});
 
     // Run migrations if not in test mode and not disabled
     if (process.env.NODE_ENV !== 'test' && process.env.RUN_MIGRATIONS !== 'false') {
-      console.log(`[DB] Running migrations...`);
+      logger.info('db.migrating');
       try {
         const migrations = await AppDataSource.runMigrations();
-        console.log(`✓ [DB] ${migrations.length} migrations applied`);
+        logger.info('db.migrationsApplied', { count: migrations.length });
       } catch (migrationError) {
-        console.warn(`[DB] Migration warning (non-fatal):`, migrationError);
+        logger.warn('db.migrationWarning', { error: String(migrationError) });
       }
     } else {
-      console.log(`[DB] Migrations skipped`);
+      logger.info('db.migrationsSkipped');
     }
 
     // Ensure loyalty_transactions table has required columns for the entity
-    // This handles cases where synchronize is disabled or table was created before entity updates
+    // This handles cases where synchronize is disabled or table was created before entity updates.
+    // NOTE: This is idempotent and safe to run on every replica (uses IF NOT EXISTS checks).
     try {
       await AppDataSource.query(`
         DO $$
         BEGIN
           -- Add missing columns that the LoyaltyTransaction entity expects
           IF NOT EXISTS (
-            SELECT 1 FROM information_schema.columns 
+            SELECT 1 FROM information_schema.columns
             WHERE table_name = 'loyalty_transactions' AND column_name = 'balance_after'
           ) THEN
             ALTER TABLE loyalty_transactions ADD COLUMN balance_after int;
           END IF;
           IF NOT EXISTS (
-            SELECT 1 FROM information_schema.columns 
+            SELECT 1 FROM information_schema.columns
             WHERE table_name = 'loyalty_transactions' AND column_name = 'source_type'
           ) THEN
             ALTER TABLE loyalty_transactions ADD COLUMN source_type varchar(40);
           END IF;
           IF NOT EXISTS (
-            SELECT 1 FROM information_schema.columns 
+            SELECT 1 FROM information_schema.columns
             WHERE table_name = 'loyalty_transactions' AND column_name = 'source_id'
           ) THEN
             ALTER TABLE loyalty_transactions ADD COLUMN source_id varchar(80);
           END IF;
           IF NOT EXISTS (
-            SELECT 1 FROM information_schema.columns 
+            SELECT 1 FROM information_schema.columns
             WHERE table_name = 'loyalty_transactions' AND column_name = 'metadata'
           ) THEN
             ALTER TABLE loyalty_transactions ADD COLUMN metadata jsonb DEFAULT '{}'::jsonb;
@@ -104,7 +113,7 @@ const bootstrap = async (): Promise<void> => {
 
           -- Fix type column: widen to varchar(30) (entity defines length: 30)
           IF EXISTS (
-            SELECT 1 FROM information_schema.columns 
+            SELECT 1 FROM information_schema.columns
             WHERE table_name = 'loyalty_transactions' AND column_name = 'type' AND character_maximum_length < 30
           ) THEN
             ALTER TABLE loyalty_transactions ALTER COLUMN type TYPE varchar(30);
@@ -112,7 +121,7 @@ const bootstrap = async (): Promise<void> => {
 
           -- Drop and recreate the CHECK constraint to include ADJUSTMENT (entity defines 4 types)
           IF EXISTS (
-            SELECT 1 FROM information_schema.table_constraints 
+            SELECT 1 FROM information_schema.table_constraints
             WHERE constraint_name = 'transaction_type_check' AND table_name = 'loyalty_transactions'
           ) THEN
             ALTER TABLE loyalty_transactions DROP CONSTRAINT transaction_type_check;
@@ -120,7 +129,7 @@ const bootstrap = async (): Promise<void> => {
 
           -- Re-add a more inclusive CHECK matching the entity's LoyaltyTransactionType
           IF NOT EXISTS (
-            SELECT 1 FROM information_schema.table_constraints 
+            SELECT 1 FROM information_schema.table_constraints
             WHERE constraint_name = 'transaction_type_check' AND table_name = 'loyalty_transactions'
           ) THEN
             ALTER TABLE loyalty_transactions ADD CONSTRAINT transaction_type_check
@@ -135,103 +144,88 @@ const bootstrap = async (): Promise<void> => {
         DO $$
         BEGIN
           IF NOT EXISTS (
-            SELECT 1 FROM pg_indexes 
+            SELECT 1 FROM pg_indexes
             WHERE tablename = 'loyalty_transactions' AND indexname = 'idx_loyalty_transactions_customer_source'
           ) THEN
-            CREATE UNIQUE INDEX idx_loyalty_transactions_customer_source 
-            ON loyalty_transactions (customer_id, source_type, source_id, type) 
+            CREATE UNIQUE INDEX idx_loyalty_transactions_customer_source
+            ON loyalty_transactions (customer_id, source_type, source_id, type)
             WHERE source_id IS NOT NULL;
           END IF;
         END $$;
       `);
-      console.log(`✓ [DB] Loyalty transactions table schema verified`);
+      logger.info('db.loyaltySchemaVerified');
     } catch (schemaError) {
       // Table may not exist yet (first run) - that's OK, TypeORM will create it
-      console.log(`[DB] Loyalty transactions table not yet created (will be created by TypeORM):`, schemaError);
+      logger.warn('db.loyaltySchemaNotCreatedYet', { error: String(schemaError) });
     }
 
     // Verify SMTP connection
     try {
       await verifySmtpConnection();
-      console.log('✓ [SMTP] SMTP connected successfully');
+      logger.info('smtp.connected');
     } catch (error) {
-      console.error('✗ [SMTP] SMTP connection failed', error);
+      logger.error('smtp.connectionFailed', { error: String(error) });
     }
 
     // Verify Redis connection
     try {
       await verifyRedisConnection();
-      console.log('✓ [Redis] Redis connected successfully');
+      logger.info('redis.connected');
     } catch (error) {
-      console.error('✗ [Redis] Redis connection failed', error);
+      logger.error('redis.connectionFailed', { error: String(error) });
     }
 
     // Find available port and start server
     const port = await findFreePort(basePort);
     server.listen(port, '0.0.0.0', () => {
-      console.log(`✓ [Server] Running on http://localhost:${port} (PID: ${process.pid})`);
+      logger.info('server.listening', { port, instance: getInstanceId() });
     });
 
-    /**
-     * Graceful shutdown handler
-     * 
-     * Closes connections in this order:
-     * 1. HTTP server (stops accepting new requests)
-     * 2. Redis client (flushes pending operations)
-     * 3. Database connection pool (closes all idle + active connections)
-     * 
-     * This prevents connection leaks and ensures clean shutdown.
-     */
-    const gracefulShutdown = async (signal: string) => {
-      console.log(`\n[Shutdown] Received ${signal}. Gracefully shutting down...`);
-      
-      server.close(async () => {
-        console.log('[Shutdown] HTTP server closed');
-        
-        // Close Redis connection
-        try {
-          await redisClient.quit();
-          console.log('[Shutdown] Redis connection closed');
-        } catch (_error) {
-          // Ignore quit errors during shutdown
-        }
-
-        // Close database connection pool
-        try {
-          const poolStats = getPoolStats();
-          console.log(`[Shutdown] Closing database pool${poolStats ? ` ${poolStats}` : ''}...`);
-          await AppDataSource.destroy();
-          console.log('[Shutdown] Database connection pool closed');
-        } catch (error) {
-          console.error('[Shutdown] Error closing database pool:', error);
-        }
-
-        console.log('[Shutdown] Process exiting');
-        process.exit(0);
+    // Register cleanup handlers to run during graceful shutdown.
+    // Order matters: workers first, then Redis, then database pool last.
+if (envConfig.ENABLE_WORKERS && emailWorker !== null) {
+      const worker = emailWorker;
+      onShutdown(async () => {
+        logger.info('shutdown.worker.stopping', { worker: 'email' });
+        await worker.close();
       });
+    }
 
-      // Force shutdown if graceful takes too long (30s)
-      setTimeout(() => {
-        console.error('[Shutdown] Graceful shutdown timeout exceeded. Force exiting.');
-        process.exit(1);
-      }, 30000);
-    };
+    // Close Redis connection.
+    onShutdown(async () => {
+      logger.info('shutdown.redis.closing');
+      try {
+        await redisClient.quit();
+      } catch (_error) {
+        // Ignore quit errors during shutdown.
+      }
+    });
 
-    // Register signal handlers for graceful shutdown
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    // Close database connection pool last.
+    onShutdown(async () => {
+      logger.info('shutdown.db.closing');
+      try {
+        await AppDataSource.destroy();
+      } catch (error) {
+        logger.warn('shutdown.db.closeError', { error: String(error) });
+      }
+    });
 
-    // Handle uncaught exceptions (log but don't crash)
+    // Register SIGTERM / SIGINT handlers that flip readiness off, drain active
+    // requests, close workers/Redis/DB, then exit.
+    registerSignalHandlers(server);
+
+    // Handle uncaught exceptions (log but don't crash).
     process.on('uncaughtException', (error: Error) => {
-      console.error('[Error] Uncaught Exception:', error);
+      logger.error('error.uncaughtException', { error: String(error) });
     });
 
     process.on('unhandledRejection', (reason: unknown) => {
-      console.error('[Error] Unhandled Rejection:', reason);
+      logger.error('error.unhandledRejection', { reason: String(reason) });
     });
 
   } catch (err: unknown) {
-    console.error('✗ [Bootstrap] Application startup failed:', err);
+    logger.error('error.bootstrap', { error: String(err) });
     process.exit(1);
   }
 };

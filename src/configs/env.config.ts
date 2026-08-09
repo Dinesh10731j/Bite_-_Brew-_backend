@@ -30,6 +30,18 @@ const parseToBoolean = (value?: string, defaultValue: boolean = false): boolean 
 
 export const envConfig = {
   PORT: cleanEnv(process.env.PORT),
+  // ===== Instance / Deployment Identity =====
+  // Unique identifier for this API instance (e.g. "api-01").
+  // If not provided, a safe identifier is generated (see instance.config.ts).
+  INSTANCE_ID: cleanEnv(process.env.INSTANCE_ID),
+  // Number of trusted proxy hops in front of this API (load balancer / reverse proxy).
+  // Controls Express `trust proxy` and safe client-IP resolution.
+  TRUST_PROXY_HOPS: parseToInt(process.env.TRUST_PROXY_HOPS, 1),
+  // Whether BullMQ/background workers should run in this replicas.
+  // Set to "false" on replicas that should be API-only.
+  ENABLE_WORKERS: parseToBoolean(process.env.ENABLE_WORKERS, true),
+  // Graceful shutdown hard timeout (ms) before force-exit.
+  SHUTDOWN_TIMEOUT_MS: parseToInt(process.env.SHUTDOWN_TIMEOUT_MS, 30000),
   DB_PASSWORD: cleanEnv(process.env.DB_PASSWORD),
   DB_URL: cleanEnv(process.env.DATABASE_URL) ?? cleanEnv(process.env.DB_URL),
   DB_HOST: cleanEnv(process.env.DB_HOST),
@@ -55,11 +67,13 @@ export const envConfig = {
   ),
   DB_POOL_KEEP_ALIVE: parseToBoolean(process.env.DB_POOL_KEEP_ALIVE, true),
   DB_POOL_LOG_QUERIES: parseToBoolean(process.env.DB_POOL_LOG_QUERIES, false),
-  // End of pool configuration
+// End of pool configuration
   JWT_SECRET_TOKEN: cleanEnv(process.env.JWT_SECRET_TOKEN),
   ACCESS_TOKEN_SECRET: cleanEnv(process.env.ACCESS_TOKEN_SECRET),
   REFRESH_TOKEN_SECRET: cleanEnv(process.env.REFRESH_TOKEN_SECRET),
   REDIS_URL: cleanEnv(process.env.REDIS_URL),
+  REDIS_HOST: cleanEnv(process.env.REDIS_HOST),
+  REDIS_PORT: parseToInt(process.env.REDIS_PORT, 6379),
   SMTP_HOST: cleanEnv(process.env.SMTP_HOST),
   SMTP_PORT: cleanEnv(process.env.SMTP_PORT),
   SMTP_USER: cleanEnv(process.env.SMTP_USER),

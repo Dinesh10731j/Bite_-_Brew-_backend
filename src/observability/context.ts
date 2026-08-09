@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { context, trace, propagation, SpanKind } from '@opentelemetry/api';
 import { randomUUID } from 'crypto';
+import { getInstanceId } from '../configs/instance.config';
 
 const REQUEST_ID_HEADER = 'x-request-id';
 
@@ -31,11 +32,12 @@ export const requestContextMiddleware = (req: Request, res: Response, next: Next
     `${method} ${url}`,
     {
       kind: SpanKind.SERVER,
-      attributes: {
-        'http.method': method,
+attributes: {
+        'http.request.method': method,
         'http.route': req.route?.path || url,
         'http.target': url,
         'http.request_id': requestId,
+        'instance.id': getInstanceId(),
       },
     },
     extracted,
@@ -45,8 +47,8 @@ export const requestContextMiddleware = (req: Request, res: Response, next: Next
   const ctx = trace.setSpan(extracted, span);
 
   context.with(ctx, () => {
-    res.on('finish', () => {
-      span.setAttribute('http.status_code', res.statusCode);
+res.on('finish', () => {
+      span.setAttribute('http.response.status_code', res.statusCode);
       span.setAttribute('http.response_content_length', res.getHeader('content-length') as any);
       span.end();
     });

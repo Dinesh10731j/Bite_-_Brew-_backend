@@ -1,12 +1,13 @@
 import Redis from 'ioredis';
+import { envConfig } from './env.config';
 
-const redisUrl = process.env.REDIS_URL;
+const redisUrl = envConfig.REDIS_URL;
 
 const client = redisUrl
   ? new Redis(redisUrl, { maxRetriesPerRequest: null })
   : new Redis({
-      host: process.env.REDIS_HOST || '127.0.0.1',
-      port: Number(process.env.REDIS_PORT || 6379),
+      host: envConfig.REDIS_HOST || '127.0.0.1',
+      port: envConfig.REDIS_PORT || 6379,
       maxRetriesPerRequest: null,
     });
 
@@ -127,4 +128,17 @@ export { client as redisClient, securityRedis };
 
 export const verifyRedisConnection = async (): Promise<void> => {
   await client.ping();
+};
+
+/**
+ * Lightweight Redis liveness helper (used by /ready and shutdown).
+ * Returns true when Redis responds to PING.
+ */
+export const pingRedis = async (): Promise<boolean> => {
+  try {
+    const result = await client.ping();
+    return result === 'PONG';
+  } catch {
+    return false;
+  }
 };

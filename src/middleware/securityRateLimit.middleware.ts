@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { RateLimiterMemory, RateLimiterRedis } from "rate-limiter-flexible";
-import IORedis from "ioredis";
+import { redisClient } from "../configs/redis.config";
 import { envConfig } from "../configs/env.config";
+import { getClientIp } from "../configs/clientIp";
 import { HTTP_STATUS } from "../constant/statusCode.interface";
 
 /**
@@ -27,19 +28,16 @@ interface LimiterConfig {
 }
 
 const isTest = process.env.NODE_ENV === "test";
-const redisUrl = process.env.REDIS_URL;
 
-const redisClient =
-  !isTest && redisUrl
-    ? new IORedis(redisUrl, {
-        maxRetriesPerRequest: null,
-        enableOfflineQueue: false,
-        lazyConnect: true,
-      })
-    : null;
+/**
+ * In test mode we fall back to memory so tests don't require a live Redis.
+ * In all other environments (including production with multiple instances) we
+ * MUST use the shared Redis client so limits are shared across all replicas.
+ */
+const useRedis = !isTest;
 
 const createLimiter = (config: LimiterConfig) => {
-  if (redisClient) {
+  if (useRedis) {
     return new RateLimiterRedis({
       storeClient: redisClient,
       keyPrefix: config.keyPrefix,
@@ -92,7 +90,9 @@ const limiters: Record<LimiterKind, ReturnType<typeof createLimiter>> = {
 };
 
 const resolveClientKey = (req: Request): string => {
-  return req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`;
+  // Use the safe client IP so attackers cannot bypass security rate limits by
+  // spoofing X-Forwarded-For.
+  return req.user?.id ? `user:${req.user.id}` : `ip:${getClientIp(req)}`;
 };
 
 /**

@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { RateLimiterMemory, RateLimiterRedis } from 'rate-limiter-flexible';
-import IORedis from 'ioredis';
+import { redisClient } from '../configs/redis.config';
+import { getClientIp } from '../configs/clientIp';
 
 type LimiterResponse = {
   remainingPoints?: number;
@@ -8,19 +9,18 @@ type LimiterResponse = {
 };
 
 const isTest = process.env.NODE_ENV === 'test';
-const redisUrl = process.env.REDIS_URL;
 
-const redisClient =
-  !isTest && redisUrl
-    ? new IORedis(redisUrl, {
-        maxRetriesPerRequest: null,
-        enableOfflineQueue: false,
-        lazyConnect: true,
-      })
-    : null;
+/**
+ * Whether to use the shared Redis-backed limiter.
+ *
+ * In test mode we fall back to memory so tests don't require a live Redis.
+ * In ALL other environments (including production with multiple instances) we
+ * MUST use Redis so rate limits are shared across all API replicas.
+ */
+const useRedis = !isTest;
 
 const createLimiter = (opts: { keyPrefix: string; points: number; duration: number }) => {
-  if (redisClient) {
+  if (useRedis) {
     return new RateLimiterRedis({
       storeClient: redisClient,
       keyPrefix: opts.keyPrefix,
@@ -29,6 +29,7 @@ const createLimiter = (opts: { keyPrefix: string; points: number; duration: numb
     });
   }
 
+  // Test-only fallback (single instance, no Redis required).
   return new RateLimiterMemory({
     keyPrefix: opts.keyPrefix,
     points: opts.points,
@@ -44,11 +45,19 @@ const readLimiter = createLimiter({ keyPrefix: 'rl:read', points: 900, duration:
 const writeLimiter = createLimiter({ keyPrefix: 'rl:write', points: 240, duration: 60 });
 
 const isBypassedPath = (path: string): boolean => {
-  return path === '/livez' || path === '/readyz' || path === '/metrics' || path.endsWith('/health');
+  return (
+    path === '/livez' ||
+    path === '/readyz' ||
+    path === '/metrics' ||
+    path === '/ready' ||
+    path.endsWith('/health')
+  );
 };
 
 const resolveClientKey = (req: Request): string => {
-  return (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`) as string;
+  // Use the safe client IP (respects trusted proxy hops) instead of req.ip
+  // so attackers cannot bypass rate limiting by spoofing X-Forwarded-For.
+  return (req.user?.id ? `user:${req.user.id}` : `ip:${getClientIp(req)}`) as string;
 };
 
 const setRateHeaders = (

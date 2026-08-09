@@ -2,6 +2,9 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+import { resourceFromAttributes } from '@opentelemetry/resources';
+import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { getInstanceId } from '../configs/instance.config';
 const otelEnabled = () => {
   const v = process.env.OTEL_ENABLED;
   if (v === undefined) return true;
@@ -32,7 +35,18 @@ export const initTracing = (): void => {
     return;
   }
 
+const resource = resourceFromAttributes({
+    [SemanticResourceAttributes.SERVICE_NAME]:
+      process.env.OTEL_SERVICE_NAME || 'bite-brew-cafe-backend',
+    [SemanticResourceAttributes.SERVICE_VERSION]:
+      process.env.OTEL_SERVICE_VERSION || '1.0.0',
+    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
+      process.env.NODE_ENV || 'development',
+    'instance.id': getInstanceId(),
+  });
+
   const sdk = new NodeSDK({
+    resource,
     traceExporter: new OTLPTraceExporter({
       url: `${exporterEndpoint.replace(/\/$/, '')}/v1/traces`,
       headers: process.env.OTEL_EXPORTER_OTLP_HEADERS
