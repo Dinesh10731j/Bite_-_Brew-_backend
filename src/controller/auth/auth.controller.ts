@@ -13,6 +13,7 @@ import { AdminLog } from "../../entities/auth/auth.entity";
 import { AppDataSource } from "../../configs/psqlDb.config";
 import { AuthContext } from "../../service/auth/auth.service";
 import { ForceLogoutService } from "../../service/security/forceLogout.service";
+import geoip from "geoip-lite";
 
 const resolveClientIp = (req: Request): string => {
   const raw = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip;
@@ -21,14 +22,22 @@ const resolveClientIp = (req: Request): string => {
 
 const buildAuthContext = (req: Request): AuthContext => {
   const deviceFingerprint = typeof req.headers["x-device-id"] === "string" ? req.headers["x-device-id"] : undefined;
+  const userAgent = req.get("user-agent");
+  const ip = resolveClientIp(req);
+  // Resolve IP -> country/city using the bundled offline geoip database.
+  // geoip.lookup returns null for private/loopback addresses (e.g. 127.0.0.1).
+  const geo = geoip.lookup(ip);
   return {
-    ip: resolveClientIp(req),
-    userAgent: req.get("user-agent"),
+    ip,
+    userAgent,
+    country: geo?.country,
+    city: geo?.city,
     device: {
       visitorId: deviceFingerprint,
-      userAgent: req.get("user-agent"),
+      userAgent,
+      // Do NOT pass the raw `sec-ch-ua` header here; DeviceService.cleanBrowserName
+      // will derive a clean browser name from the User-Agent server-side.
       platform: typeof req.headers["sec-ch-ua-platform"] === "string" ? req.headers["sec-ch-ua-platform"] : undefined,
-      browser: typeof req.headers["sec-ch-ua"] === "string" ? req.headers["sec-ch-ua"] : undefined,
     },
   };
 };

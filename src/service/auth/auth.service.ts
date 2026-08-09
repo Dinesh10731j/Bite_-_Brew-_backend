@@ -145,19 +145,23 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
     // Reset failed counters on success.
     await this.loginMonitor.resetFailedLogin(user, ctx?.ip || "unknown");
 
-    // Issue tokens + session (enforces single active session).
+// Issue tokens + session (enforces single active session).
     const result = await this.issueTokens(user, ctx);
 
+    // The device object is built/parsed inside issueTokens; use it to backfill
+    // login history with clean browser/os/platform and the device hash.
+    const device = this.deviceService.buildDevice(ctx?.device || {});
     await this.audit.audit({ userId: user.id, action: AuditAction.LOGIN, ipAddress: ctx?.ip });
     await this.loginMonitor.recordLoginHistory({
       userId: user.id,
       sessionId: result.tokens.session_id,
+      deviceHash: device.deviceHash,
       ip: ctx?.ip || "unknown",
       country: ctx?.country,
       city: ctx?.city,
-      browser: ctx?.device?.browser || ctx?.userAgent,
-      os: ctx?.device?.os,
-      platform: ctx?.device?.platform,
+      browser: device.browser,
+      os: device.os,
+      platform: device.platform,
       status: LoginStatus.SUCCESS,
     });
     await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.LOGIN, ipAddress: ctx?.ip, sessionId: result.tokens.session_id });

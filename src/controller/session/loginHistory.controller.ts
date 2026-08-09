@@ -11,6 +11,17 @@ import { Message } from "../../constant/message.interface";
  */
 export class LoginHistoryController {
   /**
+   * Normalize a stored device string: strip surrounding quotes and trim.
+   * Returns undefined for empty/placeholder values.
+   */
+  private static cleanValue(value?: string | null): string | undefined {
+    if (!value) return undefined;
+    const cleaned = value.replace(/^"|"$/g, "").trim();
+    if (!cleaned || cleaned === "Unknown" || cleaned === "unknown") return undefined;
+    return cleaned;
+  }
+
+  /**
    * GET /login-history?limit=&offset= — list recent login history for the current user.
    */
   static async list(req: Request, res: Response) {
@@ -30,23 +41,30 @@ export class LoginHistoryController {
       skip: offset,
     });
 
-    const data = rows.map((h) => ({
-      id: h.id,
-      sessionId: h.sessionId,
-      device: {
-        browser: h.browser,
-        os: h.os,
-        platform: h.platform,
-        deviceHash: h.deviceHash,
-      },
-      ipAddress: h.ipAddress,
-      country: h.country,
-      city: h.city,
-      status: h.status,
-      failureReason: h.failureReason,
-      loginTime: h.loginTime,
-      logoutTime: h.logoutTime,
-    }));
+const data = rows.map((h) => {
+      const browser = LoginHistoryController.cleanValue(h.browser) ?? "Unknown browser";
+      const os = LoginHistoryController.cleanValue(h.os);
+      const platform = LoginHistoryController.cleanValue(h.platform);
+      const display = [browser, os, platform].filter(Boolean).join(" on ") || "Unknown device";
+      return {
+        id: h.id,
+        sessionId: h.sessionId,
+        device: display,
+        deviceInfo: {
+          browser,
+          os,
+          platform,
+          deviceHash: h.deviceHash,
+        },
+        ipAddress: h.ipAddress,
+        country: h.country,
+        city: h.city,
+        status: h.status,
+        failureReason: h.failureReason,
+        loginTime: h.loginTime,
+        logoutTime: h.logoutTime,
+      };
+    });
 
     return res.status(HTTP_STATUS.OK).json({
       message: Message.LOGIN_HISTORY_FETCHED,

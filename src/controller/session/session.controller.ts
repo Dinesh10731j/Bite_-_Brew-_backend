@@ -16,9 +16,20 @@ import { SessionStatus } from "../../constant/enum.constant";
  *  - Logout all devices
  */
 export class SessionController {
-  private static sessionService = new SessionService();
+private static sessionService = new SessionService();
   private static refreshTokenService = new RefreshTokenService();
   private static forceLogout = new ForceLogoutService();
+
+  /**
+   * Normalize a stored device string: strip surrounding quotes and trim.
+   * Returns undefined for empty/placeholder values.
+   */
+  private static cleanValue(value?: string | null): string | undefined {
+    if (!value) return undefined;
+    const cleaned = value.replace(/^"|"$/g, "").trim();
+    if (!cleaned || cleaned === "Unknown" || cleaned === "unknown") return undefined;
+    return cleaned;
+  }
 
   /**
    * GET /sessions — list active sessions + identify the current device.
@@ -30,27 +41,34 @@ export class SessionController {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: Message.UNAUTHORIZED });
     }
 
-    const sessions = await SessionController.sessionService.listSessions(userId);
+const sessions = await SessionController.sessionService.listSessions(userId);
 
-    const payload = sessions.map((s) => ({
-      sessionId: s.sessionId,
-      isCurrent: s.sessionId === currentSessionId,
-      isActive: s.status === SessionStatus.ACTIVE,
-      device: {
-        browser: s.browser,
-        os: s.os,
-        platform: s.platform,
-        deviceHash: s.deviceHash,
-      },
-      ipAddress: s.ipAddress,
-      country: s.country,
-      city: s.city,
-      status: s.status,
-      lastActivityAt: s.lastActivityAt,
-      revokedAt: s.revokedAt,
-      revokedReason: s.revokedReason,
-      createdAt: s.createdAt,
-    }));
+    const payload = sessions.map((s) => {
+      const browser = SessionController.cleanValue(s.browser) ?? "Unknown browser";
+      const os = SessionController.cleanValue(s.os);
+      const platform = SessionController.cleanValue(s.platform);
+      const display = [browser, os, platform].filter(Boolean).join(" on ") || "Unknown device";
+      return {
+        sessionId: s.sessionId,
+        isCurrent: s.sessionId === currentSessionId,
+        isActive: s.status === SessionStatus.ACTIVE,
+        device: display,
+        deviceInfo: {
+          browser,
+          os,
+          platform,
+          deviceHash: s.deviceHash,
+        },
+        ipAddress: s.ipAddress,
+        country: s.country,
+        city: s.city,
+        status: s.status,
+        lastActivityAt: s.lastActivityAt,
+        revokedAt: s.revokedAt,
+        revokedReason: s.revokedReason,
+        createdAt: s.createdAt,
+      };
+    });
 
     return res.status(HTTP_STATUS.OK).json({ message: Message.SESSIONS_FETCHED, data: payload });
   }

@@ -58,7 +58,7 @@ export class DeviceService {
     return crypto.createHmac("sha256", secret).update(raw).digest("hex");
   }
 
-  /**
+/**
    * Parse a User-Agent string into structured device metadata.
    */
   parseUserAgent(userAgent?: string): { browser: string; os: string; platform: string } {
@@ -75,6 +75,37 @@ export class DeviceService {
   }
 
   /**
+   * Clean a raw `sec-ch-ua` header value into a human-readable browser name.
+   * Example: `"Not=A?Brand";v="99", "Microsoft Edge";v="151", "Chromium";v="151"`
+   *          -> `Microsoft Edge`
+   */
+  cleanBrowserName(raw?: string | null): string | undefined {
+    if (!raw) return undefined;
+    const value = raw.replace(/^"|"$/g, "").trim();
+    if (!value) return undefined;
+    // Prefer a known browser name over generic brands.
+    const known = ["Edge", "Chrome", "Firefox", "Safari", "Opera", "Brave", "Vivaldi", "Chromium", "SamsungBrowser"];
+    const found = known.find((b) => value.includes(b));
+    if (found) {
+      if (found === "Edge") return "Microsoft Edge";
+      if (found === "SamsungBrowser") return "Samsung Internet";
+      return found;
+    }
+    // Fall back to the first comma-separated segment, cleaned.
+    const first = value.split(",")[0].replace(/^"|"$/g, "").replace(/;.*$/, "").trim();
+    return first || undefined;
+  }
+
+  /**
+   * Strip surrounding quotes from a client-provided value (e.g. `"Windows"` -> `Windows`).
+   */
+  cleanQuoted(value?: string | null): string | undefined {
+    if (!value) return undefined;
+    const cleaned = value.replace(/^"|"$/g, "").trim();
+    return cleaned || undefined;
+  }
+
+  /**
    * Build a ParsedDevice from request-derived fingerprint input.
    */
   buildDevice(input: DeviceFingerprintInput): ParsedDevice {
@@ -82,12 +113,12 @@ export class DeviceService {
     const deviceHash = this.hashFingerprint(input);
     return {
       deviceHash,
-      browser: input.browser || parsed.browser,
-      os: input.os || parsed.os,
-      platform: input.platform || parsed.platform,
-      screenResolution: input.screenResolution,
-      timezone: input.timezone,
-      language: input.language,
+      browser: this.cleanBrowserName(input.browser) || parsed.browser,
+      os: this.cleanQuoted(input.os) || parsed.os,
+      platform: this.cleanQuoted(input.platform) || parsed.platform,
+      screenResolution: this.cleanQuoted(input.screenResolution),
+      timezone: this.cleanQuoted(input.timezone),
+      language: this.cleanQuoted(input.language),
       userAgent: input.userAgent,
     };
   }
