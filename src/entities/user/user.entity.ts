@@ -1,13 +1,21 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from "typeorm";
-import { UserRole } from "../../constant/enum.constant";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+  Unique,
+  UpdateDateColumn,
+} from 'typeorm';
+import { UserRole } from '../../constant/enum.constant';
 
-@Entity("users")
-@Unique(["email"])
+@Entity('users')
+@Unique(['email'])
 export class User {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: "varchar", length: 120, nullable: true, default: "Unknown User" })
+  @Column({ type: 'varchar', length: 120, nullable: true, default: 'Unknown User' })
   name!: string;
 
   @Index()
@@ -17,13 +25,13 @@ export class User {
   @Column()
   password!: string;
 
-  @Column({ type: "enum", enum: UserRole, default: UserRole.USER })
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
   role!: UserRole;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   resetToken?: string;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   resetTokenExpiry?: Date;
 
   // ===== Account Protection Fields =====
@@ -36,16 +44,16 @@ export class User {
   @Column({ default: 0 })
   failedLoginAttempts!: number;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   lockedUntil?: Date | null;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date | null;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   passwordChangedAt?: Date | null;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   emailVerifiedAt?: Date | null;
 
   @CreateDateColumn()

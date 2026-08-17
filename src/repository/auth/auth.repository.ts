@@ -1,11 +1,11 @@
-import { Repository } from "typeorm";
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { User } from "../../entities/user/user.entity";
+import { Repository } from 'typeorm';
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { User } from '../../entities/user/user.entity';
 
 export class AuthRepository {
   private get repo(): Repository<User> {
     if (!AppDataSource.isInitialized) {
-      throw new Error("Database not initialized");
+      throw new Error('Database not initialized');
     }
     return AppDataSource.getRepository(User);
   }
@@ -18,7 +18,7 @@ export class AuthRepository {
     return this.repo.findOne({ where: { id } });
   }
 
-  async createUser(payload: Pick<User, "name" | "email" | "password" | "role">): Promise<User> {
+  async createUser(payload: Pick<User, 'name' | 'email' | 'password' | 'role'>): Promise<User> {
     const user = this.repo.create({
       ...payload,
       email: payload.email.toLowerCase().trim(),

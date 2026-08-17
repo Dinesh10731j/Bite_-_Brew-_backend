@@ -1,42 +1,36 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-} from "typeorm";
-import { SecurityEventType } from "../../constant/enum.constant";
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { SecurityEventType } from '../../constant/enum.constant';
 
-@Entity("security_events")
-@Index(["userId", "createdAt"])
-@Index(["type", "createdAt"])
+@Entity('security_events')
+@Index(['userId', 'createdAt'])
+@Index(['type', 'createdAt'])
 export class SecurityEvent {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Index()
-  @Column({ type: "varchar", length: 80, nullable: true })
+  @Column({ type: 'varchar', length: 80, nullable: true })
   userId?: string | null;
 
-  @Column({ type: "enum", enum: SecurityEventType })
+  @Column({ type: 'enum', enum: SecurityEventType })
   type!: SecurityEventType;
 
-  @Column({ type: "varchar", length: 64, nullable: true })
+  @Column({ type: 'varchar', length: 64, nullable: true })
   ipAddress?: string | null;
 
-  @Column({ type: "varchar", length: 128, nullable: true })
+  @Column({ type: 'varchar', length: 128, nullable: true })
   deviceHash?: string | null;
 
-  @Column({ type: "varchar", length: 80, nullable: true })
+  @Column({ type: 'varchar', length: 80, nullable: true })
   sessionId?: string | null;
 
-  @Column({ type: "jsonb", nullable: true })
+  @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, unknown> | null;
 
-  @Column({ type: "text", nullable: true })
+  @Column({ type: 'text', nullable: true })
   description?: string | null;
 
-  @Column({ type: "boolean", default: false })
+  @Column({ type: 'boolean', default: false })
   isHighRisk!: boolean;
 
   @CreateDateColumn()

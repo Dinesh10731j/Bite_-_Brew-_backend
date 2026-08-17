@@ -1,8 +1,8 @@
-import crypto from "crypto";
-import UAParser from "ua-parser-js";
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { Device } from "../../entities/security/device.entity";
-import { securityRedis } from "../../configs/redis.config";
+import crypto from 'crypto';
+import UAParser from 'ua-parser-js';
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { Device } from '../../entities/security/device.entity';
+import { securityRedis } from '../../configs/redis.config';
 
 export interface DeviceFingerprintInput {
   visitorId?: string;
@@ -42,7 +42,8 @@ export class DeviceService {
    * same hash across requests but cannot be reversed.
    */
   hashFingerprint(input: DeviceFingerprintInput): string {
-    const secret = process.env.DEVICE_HASH_SECRET || process.env.JWT_ACCESS_SECRET || "device_hash_secret";
+    const secret =
+      process.env.DEVICE_HASH_SECRET || process.env.JWT_ACCESS_SECRET || 'device_hash_secret';
     const raw =
       [
         input.visitorId,
@@ -53,24 +54,26 @@ export class DeviceService {
         input.userAgent,
       ]
         .filter(Boolean)
-        .join("|") || input.userAgent || "unknown";
+        .join('|') ||
+      input.userAgent ||
+      'unknown';
 
-    return crypto.createHmac("sha256", secret).update(raw).digest("hex");
+    return crypto.createHmac('sha256', secret).update(raw).digest('hex');
   }
 
-/**
+  /**
    * Parse a User-Agent string into structured device metadata.
    */
   parseUserAgent(userAgent?: string): { browser: string; os: string; platform: string } {
     if (!userAgent) {
-      return { browser: "Unknown", os: "Unknown", platform: "Unknown" };
+      return { browser: 'Unknown', os: 'Unknown', platform: 'Unknown' };
     }
     const parser = new UAParser();
     const result = parser.setUA(userAgent).getResult();
     return {
-      browser: result.browser?.name || "Unknown",
-      os: result.os?.name || "Unknown",
-      platform: result.device?.type || result?.os?.name || "Unknown",
+      browser: result.browser?.name || 'Unknown',
+      os: result.os?.name || 'Unknown',
+      platform: result.device?.type || result?.os?.name || 'Unknown',
     };
   }
 
@@ -81,18 +84,28 @@ export class DeviceService {
    */
   cleanBrowserName(raw?: string | null): string | undefined {
     if (!raw) return undefined;
-    const value = raw.replace(/^"|"$/g, "").trim();
+    const value = raw.replace(/^"|"$/g, '').trim();
     if (!value) return undefined;
     // Prefer a known browser name over generic brands.
-    const known = ["Edge", "Chrome", "Firefox", "Safari", "Opera", "Brave", "Vivaldi", "Chromium", "SamsungBrowser"];
+    const known = [
+      'Edge',
+      'Chrome',
+      'Firefox',
+      'Safari',
+      'Opera',
+      'Brave',
+      'Vivaldi',
+      'Chromium',
+      'SamsungBrowser',
+    ];
     const found = known.find((b) => value.includes(b));
     if (found) {
-      if (found === "Edge") return "Microsoft Edge";
-      if (found === "SamsungBrowser") return "Samsung Internet";
+      if (found === 'Edge') return 'Microsoft Edge';
+      if (found === 'SamsungBrowser') return 'Samsung Internet';
       return found;
     }
     // Fall back to the first comma-separated segment, cleaned.
-    const first = value.split(",")[0].replace(/^"|"$/g, "").replace(/;.*$/, "").trim();
+    const first = value.split(',')[0].replace(/^"|"$/g, '').replace(/;.*$/, '').trim();
     return first || undefined;
   }
 
@@ -101,7 +114,7 @@ export class DeviceService {
    */
   cleanQuoted(value?: string | null): string | undefined {
     if (!value) return undefined;
-    const cleaned = value.replace(/^"|"$/g, "").trim();
+    const cleaned = value.replace(/^"|"$/g, '').trim();
     return cleaned || undefined;
   }
 
@@ -154,7 +167,7 @@ export class DeviceService {
       userAgent: device.userAgent,
       lastSeenAt: new Date(),
       riskScore: 0,
-      riskLevel: "low",
+      riskLevel: 'low',
       isTrusted: false,
     });
     return repo.save(created);
@@ -164,7 +177,7 @@ export class DeviceService {
    * Cache a device hash in Redis as a risk signal (TTL-based).
    */
   async rememberDevice(deviceHash: string, ttlSeconds = 30 * 24 * 60 * 60): Promise<void> {
-    await securityRedis.setKeep("device", deviceHash, JSON.stringify({ seenAt: Date.now() }));
+    await securityRedis.setKeep('device', deviceHash, JSON.stringify({ seenAt: Date.now() }));
     void ttlSeconds;
   }
 
@@ -174,6 +187,6 @@ export class DeviceService {
   async deleteDevice(deviceHash: string): Promise<void> {
     const repo = AppDataSource.getRepository(Device);
     await repo.delete({ deviceHash });
-    await securityRedis.del("device", deviceHash);
+    await securityRedis.del('device', deviceHash);
   }
 }

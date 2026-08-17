@@ -1,7 +1,7 @@
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { VisitLog } from "../../entities/analytics/analytics.entity";
-import { Message } from "../../entities/messages/messages.entity";
-import { Order } from "../../entities/order/order.entity";
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { VisitLog } from '../../entities/analytics/analytics.entity';
+import { Message } from '../../entities/messages/messages.entity';
+import { Order } from '../../entities/order/order.entity';
 
 export class AnalyticsRepository {
   private readonly orderRepo = AppDataSource.getRepository(Order);
@@ -19,45 +19,45 @@ export class AnalyticsRepository {
 
   async getRevenue() {
     const row = await this.orderRepo
-      .createQueryBuilder("order")
-      .select("COALESCE(SUM(order.totalPrice), 0)", "total")
+      .createQueryBuilder('order')
+      .select('COALESCE(SUM(order.totalPrice), 0)', 'total')
       .getRawOne<{ total: string }>();
     return Number(row?.total || 0);
   }
 
-async getDailyVisits(days: number) {
+  async getDailyVisits(days: number) {
     const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     return this.visitRepo
-      .createQueryBuilder("visit")
-      .select("DATE(visit.visitedAt)", "day")
-      .addSelect("COUNT(*)", "count")
-      .where("visit.visitedAt >= :from", { from })
-      .groupBy("DATE(visit.visitedAt)")
-      .orderBy("DATE(visit.visitedAt)", "ASC")
+      .createQueryBuilder('visit')
+      .select('DATE(visit.visitedAt)', 'day')
+      .addSelect('COUNT(*)', 'count')
+      .where('visit.visitedAt >= :from', { from })
+      .groupBy('DATE(visit.visitedAt)')
+      .orderBy('DATE(visit.visitedAt)', 'ASC')
       .getRawMany<{ day: string; count: string }>();
   }
 
   async getDailyOrders(days: number) {
     const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     return this.orderRepo
-      .createQueryBuilder("order")
-      .select("DATE(order.createdAt)", "day")
-      .addSelect("COUNT(*)", "count")
-      .where("order.createdAt >= :from", { from })
-      .groupBy("DATE(order.createdAt)")
-      .orderBy("DATE(order.createdAt)", "ASC")
+      .createQueryBuilder('order')
+      .select('DATE(order.createdAt)', 'day')
+      .addSelect('COUNT(*)', 'count')
+      .where('order.createdAt >= :from', { from })
+      .groupBy('DATE(order.createdAt)')
+      .orderBy('DATE(order.createdAt)', 'ASC')
       .getRawMany<{ day: string; count: string }>();
   }
 
   async getDailyRevenue(days: number) {
     const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     return this.orderRepo
-      .createQueryBuilder("order")
-      .select("DATE(order.createdAt)", "day")
-      .addSelect("COALESCE(SUM(order.totalPrice), 0)", "revenue")
-      .where("order.createdAt >= :from", { from })
-      .groupBy("DATE(order.createdAt)")
-      .orderBy("DATE(order.createdAt)", "ASC")
+      .createQueryBuilder('order')
+      .select('DATE(order.createdAt)', 'day')
+      .addSelect('COALESCE(SUM(order.totalPrice), 0)', 'revenue')
+      .where('order.createdAt >= :from', { from })
+      .groupBy('DATE(order.createdAt)')
+      .orderBy('DATE(order.createdAt)', 'ASC')
       .getRawMany<{ day: string; revenue: string }>();
   }
 }

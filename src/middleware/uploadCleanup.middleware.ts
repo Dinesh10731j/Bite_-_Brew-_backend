@@ -11,14 +11,16 @@ export const uploadCleanup = (upload: multer.Multer, s3Client: S3Client, bucket:
     if (req.files as Express.Multer.File[]) {
       res.on('finish', async () => {
         if (res.statusCode >= 400) {
-          for (const file of (req.files as Express.Multer.File[])) {
+          for (const file of req.files as Express.Multer.File[]) {
             const key = (file as Express.Multer.File & { key?: string }).key;
             if (!key) continue;
             try {
-              await s3Client.send(new DeleteObjectCommand({
-                Bucket: bucket,
-                Key: key,
-              }));
+              await s3Client.send(
+                new DeleteObjectCommand({
+                  Bucket: bucket,
+                  Key: key,
+                }),
+              );
             } catch (error) {
               console.error('Cleanup failed:', error);
             }
@@ -29,4 +31,3 @@ export const uploadCleanup = (upload: multer.Multer, s3Client: S3Client, bucket:
     next();
   };
 };
-

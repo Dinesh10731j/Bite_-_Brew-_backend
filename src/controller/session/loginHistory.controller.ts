@@ -1,8 +1,8 @@
-import { Request, Response } from "express";
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { LoginHistory } from "../../entities/security/loginHistory.entity";
-import { HTTP_STATUS } from "../../constant/statusCode.interface";
-import { Message } from "../../constant/message.interface";
+import { Request, Response } from 'express';
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { LoginHistory } from '../../entities/security/loginHistory.entity';
+import { HTTP_STATUS } from '../../constant/statusCode.interface';
+import { Message } from '../../constant/message.interface';
 
 /**
  * LoginHistoryController
@@ -16,8 +16,8 @@ export class LoginHistoryController {
    */
   private static cleanValue(value?: string | null): string | undefined {
     if (!value) return undefined;
-    const cleaned = value.replace(/^"|"$/g, "").trim();
-    if (!cleaned || cleaned === "Unknown" || cleaned === "unknown") return undefined;
+    const cleaned = value.replace(/^"|"$/g, '').trim();
+    if (!cleaned || cleaned === 'Unknown' || cleaned === 'unknown') return undefined;
     return cleaned;
   }
 
@@ -36,16 +36,16 @@ export class LoginHistoryController {
     const repo = AppDataSource.getRepository(LoginHistory);
     const [rows, total] = await repo.findAndCount({
       where: { userId },
-      order: { loginTime: "DESC" },
+      order: { loginTime: 'DESC' },
       take: limit,
       skip: offset,
     });
 
-const data = rows.map((h) => {
-      const browser = LoginHistoryController.cleanValue(h.browser) ?? "Unknown browser";
+    const data = rows.map((h) => {
+      const browser = LoginHistoryController.cleanValue(h.browser) ?? 'Unknown browser';
       const os = LoginHistoryController.cleanValue(h.os);
       const platform = LoginHistoryController.cleanValue(h.platform);
-      const display = [browser, os, platform].filter(Boolean).join(" on ") || "Unknown device";
+      const display = [browser, os, platform].filter(Boolean).join(' on ') || 'Unknown device';
       return {
         id: h.id,
         sessionId: h.sessionId,

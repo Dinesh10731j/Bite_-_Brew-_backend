@@ -1,4 +1,4 @@
-declare module "ua-parser-js" {
+declare module 'ua-parser-js' {
   export interface IBrowser {
     name?: string;
     version?: string;

@@ -1,4 +1,4 @@
-import { getIo } from "../../configs/socket.config";
+import { getIo } from '../../configs/socket.config';
 
 /**
  * ForceLogoutService
@@ -16,14 +16,18 @@ export class ForceLogoutService {
   /**
    * Force-logout a specific session (disconnect only that session's sockets).
    */
-  async forceLogoutSession(userId: string, sessionId: string, reason = "session_revoked"): Promise<void> {
+  async forceLogoutSession(
+    userId: string,
+    sessionId: string,
+    reason = 'session_revoked',
+  ): Promise<void> {
     const io = getIo();
     if (!io) return;
 
     // Notify any socket in the user room.
-    io.to(`user:${userId}`).emit("FORCE_LOGOUT", { reason, sessionId });
+    io.to(`user:${userId}`).emit('FORCE_LOGOUT', { reason, sessionId });
 
-// Disconnect sockets bound to the specific session room.
+    // Disconnect sockets bound to the specific session room.
     const sessionRoom = `session:${sessionId}`;
     try {
       const sockets = await io.in(sessionRoom).fetchSockets();
@@ -37,9 +41,9 @@ export class ForceLogoutService {
    * Force-logout the previous session when a new login replaces it
    * (Netflix-style single active session).
    */
-  async forceLogoutAllForUser(userId: string, reason = "signed_in_elsewhere"): Promise<void> {
+  async forceLogoutAllForUser(userId: string, reason = 'signed_in_elsewhere'): Promise<void> {
     const io = getIo();
     if (!io) return;
-    io.to(`user:${userId}`).emit("FORCE_LOGOUT", { reason });
+    io.to(`user:${userId}`).emit('FORCE_LOGOUT', { reason });
   }
 }

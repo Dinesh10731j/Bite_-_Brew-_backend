@@ -1,9 +1,9 @@
-import { NextFunction, Request, Response } from "express";
-import { RateLimiterMemory, RateLimiterRedis } from "rate-limiter-flexible";
-import { redisClient } from "../configs/redis.config";
-import { envConfig } from "../configs/env.config";
-import { getClientIp } from "../configs/clientIp";
-import { HTTP_STATUS } from "../constant/statusCode.interface";
+import { NextFunction, Request, Response } from 'express';
+import { RateLimiterMemory, RateLimiterRedis } from 'rate-limiter-flexible';
+import { redisClient } from '../configs/redis.config';
+import { envConfig } from '../configs/env.config';
+import { getClientIp } from '../configs/clientIp';
+import { HTTP_STATUS } from '../constant/statusCode.interface';
 
 /**
  * Endpoint-specific, Redis-backed rate limiters.
@@ -19,7 +19,7 @@ import { HTTP_STATUS } from "../constant/statusCode.interface";
  *  - per-user / per-IP keys
  */
 
-type LimiterKind = "login" | "registration" | "passwordReset" | "refresh" | "public";
+type LimiterKind = 'login' | 'registration' | 'passwordReset' | 'refresh' | 'public';
 
 interface LimiterConfig {
   keyPrefix: string;
@@ -27,7 +27,7 @@ interface LimiterConfig {
   duration: number;
 }
 
-const isTest = process.env.NODE_ENV === "test";
+const isTest = process.env.NODE_ENV === 'test';
 
 /**
  * In test mode we fall back to memory so tests don't require a live Redis.
@@ -55,27 +55,27 @@ const createLimiter = (config: LimiterConfig) => {
 // Endpoint-specific limiter configurations (from env config with defaults).
 const limiterConfigs: Record<LimiterKind, LimiterConfig> = {
   login: {
-    keyPrefix: "rl:login",
+    keyPrefix: 'rl:login',
     points: envConfig.RATE_LIMIT_LOGIN_POINTS,
     duration: envConfig.RATE_LIMIT_LOGIN_DURATION,
   },
   registration: {
-    keyPrefix: "rl:registration",
+    keyPrefix: 'rl:registration',
     points: envConfig.RATE_LIMIT_REGISTRATION_POINTS,
     duration: envConfig.RATE_LIMIT_REGISTRATION_DURATION,
   },
   passwordReset: {
-    keyPrefix: "rl:password_reset",
+    keyPrefix: 'rl:password_reset',
     points: 5,
     duration: 3600,
   },
   refresh: {
-    keyPrefix: "rl:refresh",
+    keyPrefix: 'rl:refresh',
     points: envConfig.RATE_LIMIT_REFRESH_POINTS,
     duration: envConfig.RATE_LIMIT_REFRESH_DURATION,
   },
   public: {
-    keyPrefix: "rl:public",
+    keyPrefix: 'rl:public',
     points: 300,
     duration: 60,
   },
@@ -101,7 +101,7 @@ const resolveClientKey = (req: Request): string => {
  */
 export const securityRateLimit = (kind: LimiterKind, blockDuration?: number) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    if (process.env.NODE_ENV === "test" || req.method === "OPTIONS") {
+    if (process.env.NODE_ENV === 'test' || req.method === 'OPTIONS') {
       next();
       return;
     }
@@ -111,13 +111,16 @@ export const securityRateLimit = (kind: LimiterKind, blockDuration?: number) => 
     const key = resolveClientKey(req);
 
     try {
-      const limiterRes = (await limiter.consume(key)) as { remainingPoints?: number; msBeforeNext: number };
+      const limiterRes = (await limiter.consume(key)) as {
+        remainingPoints?: number;
+        msBeforeNext: number;
+      };
       const remaining = Math.max(0, Math.floor(limiterRes.remainingPoints ?? config.points));
       const resetSeconds = Math.max(1, Math.ceil(limiterRes.msBeforeNext / 1000));
 
-      res.setHeader("X-RateLimit-Limit", String(config.points));
-      res.setHeader("X-RateLimit-Remaining", String(remaining));
-      res.setHeader("X-RateLimit-Reset", String(resetSeconds));
+      res.setHeader('X-RateLimit-Limit', String(config.points));
+      res.setHeader('X-RateLimit-Remaining', String(remaining));
+      res.setHeader('X-RateLimit-Reset', String(resetSeconds));
       next();
     } catch (rejRes) {
       const blocked = (rejRes as { msBeforeNext: number }) || { msBeforeNext: 1000 };
@@ -125,12 +128,12 @@ export const securityRateLimit = (kind: LimiterKind, blockDuration?: number) => 
       // Exponential backoff: multiply by provided blockDuration factor.
       const resetSeconds = blockDuration ? baseReset * blockDuration : baseReset;
 
-      res.setHeader("X-RateLimit-Limit", String(config.points));
-      res.setHeader("X-RateLimit-Remaining", "0");
-      res.setHeader("X-RateLimit-Reset", String(resetSeconds));
-      res.setHeader("Retry-After", String(resetSeconds));
+      res.setHeader('X-RateLimit-Limit', String(config.points));
+      res.setHeader('X-RateLimit-Remaining', '0');
+      res.setHeader('X-RateLimit-Reset', String(resetSeconds));
+      res.setHeader('Retry-After', String(resetSeconds));
       res.status(HTTP_STATUS.TOO_MANY_REQUESTS).json({
-        message: "Too many requests. Please retry later.",
+        message: 'Too many requests. Please retry later.',
         retryAfterSeconds: resetSeconds,
       });
     }
@@ -138,8 +141,8 @@ export const securityRateLimit = (kind: LimiterKind, blockDuration?: number) => 
 };
 
 /** Convenience limiters for route wiring. */
-export const loginRateLimiter = securityRateLimit("login");
-export const registrationRateLimiter = securityRateLimit("registration");
-export const passwordResetRateLimiter = securityRateLimit("passwordReset");
-export const refreshRateLimiter = securityRateLimit("refresh");
-export const publicApiRateLimiter = securityRateLimit("public");
+export const loginRateLimiter = securityRateLimit('login');
+export const registrationRateLimiter = securityRateLimit('registration');
+export const passwordResetRateLimiter = securityRateLimit('passwordReset');
+export const refreshRateLimiter = securityRateLimit('refresh');
+export const publicApiRateLimiter = securityRateLimit('public');

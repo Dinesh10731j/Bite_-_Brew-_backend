@@ -39,10 +39,7 @@ export const readinessHandler = async (_req: Request, res: Response): Promise<vo
     return;
   }
 
-  const [databaseOk, redisOk] = await Promise.all([
-    checkDatabaseHealth(),
-    checkRedisHealth(),
-  ]);
+  const [databaseOk, redisOk] = await Promise.all([checkDatabaseHealth(), checkRedisHealth()]);
 
   const checks = {
     database: databaseOk ? 'ok' : 'failed',

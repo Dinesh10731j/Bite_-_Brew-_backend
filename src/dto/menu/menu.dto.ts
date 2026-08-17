@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsOptional, IsString, IsUUID, Min } from "class-validator";
+import { IsBoolean, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 export class CreateCategoryDTO {
   @IsString()
@@ -17,7 +17,7 @@ export class CreateMenuItemDTO {
   @IsString()
   name!: string;
 
-  @IsUUID("all")
+  @IsUUID('all')
   categoryId!: string;
 
   @IsNumber()

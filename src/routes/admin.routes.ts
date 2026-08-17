@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { jwtVerify, isAdmin } from '../middleware/auth.middleware';
-import { analytics, messagesList, ordersList, overview } from '../controller/admin/dashboard.controller';
+import {
+  analytics,
+  messagesList,
+  ordersList,
+  overview,
+} from '../controller/admin/dashboard.controller';
 
 const router = Router();
 
@@ -19,5 +24,3 @@ router.get('/messages', messagesList);
 // Add more...
 
 export default router;
-
-

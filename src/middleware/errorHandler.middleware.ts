@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from "express";
-import { HTTP_STATUS } from "../constant/statusCode.interface";
-import { Message } from "../constant/message.interface";
+import { Request, Response, NextFunction } from 'express';
+import { HTTP_STATUS } from '../constant/statusCode.interface';
+import { Message } from '../constant/message.interface';
 
 /**
  * Centralized error handler.
@@ -26,9 +26,9 @@ export const errorHandler = (
 
   // Log the full error server-side for debugging.
   if (e?.stack) {
-    console.error("[ErrorHandler]", e);
+    console.error('[ErrorHandler]', e);
   } else {
-    console.error("[ErrorHandler]", e?.message || err || "Unknown error");
+    console.error('[ErrorHandler]', e?.message || err || 'Unknown error');
   }
 
   // Handle known error shapes with explicit status codes.
@@ -41,21 +41,21 @@ export const errorHandler = (
 
   // Map common library errors to HTTP statuses.
   if (!statusCode) {
-    if (e?.name === "JsonWebTokenError" || e?.name === "TokenExpiredError") {
+    if (e?.name === 'JsonWebTokenError' || e?.name === 'TokenExpiredError') {
       statusCode = HTTP_STATUS.UNAUTHORIZED;
-    } else if (e?.name === "UnauthorizedError") {
+    } else if (e?.name === 'UnauthorizedError') {
       statusCode = HTTP_STATUS.UNAUTHORIZED;
-    } else if (e?.code === "ERR_ASSERTION") {
+    } else if (e?.code === 'ERR_ASSERTION') {
       statusCode = HTTP_STATUS.BAD_REQUEST;
-    } else if (e?.code === "LIMIT_FILE_SIZE") {
+    } else if (e?.code === 'LIMIT_FILE_SIZE') {
       statusCode = HTTP_STATUS.BAD_REQUEST;
     } else {
       statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
     }
   }
 
-// Never leak internal details in production.
-  const isProduction = process.env.NODE_ENV === "production";
+  // Never leak internal details in production.
+  const isProduction = process.env.NODE_ENV === 'production';
   const message =
     statusCode >= 500
       ? isProduction

@@ -11,7 +11,6 @@ const otelEnabled = () => {
   return v === 'true' || v === '1';
 };
 
-
 const setupDiagnostics = () => {
   const level = (process.env.OTEL_LOG_LEVEL || '').toLowerCase();
   if (level === 'debug') {
@@ -20,7 +19,6 @@ const setupDiagnostics = () => {
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
   }
 };
-
 
 export const initTracing = (): void => {
   setupDiagnostics();
@@ -35,13 +33,11 @@ export const initTracing = (): void => {
     return;
   }
 
-const resource = resourceFromAttributes({
+  const resource = resourceFromAttributes({
     [SemanticResourceAttributes.SERVICE_NAME]:
       process.env.OTEL_SERVICE_NAME || 'bite-brew-cafe-backend',
-    [SemanticResourceAttributes.SERVICE_VERSION]:
-      process.env.OTEL_SERVICE_VERSION || '1.0.0',
-    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
-      process.env.NODE_ENV || 'development',
+    [SemanticResourceAttributes.SERVICE_VERSION]: process.env.OTEL_SERVICE_VERSION || '1.0.0',
+    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
     'instance.id': getInstanceId(),
   });
 
@@ -63,7 +59,7 @@ const resource = resourceFromAttributes({
       maybePromise
         .then(() => console.log('[Tracing] OpenTelemetry initialized'))
         .catch((err: unknown) =>
-          console.error('[Tracing] Failed to initialize OpenTelemetry', err)
+          console.error('[Tracing] Failed to initialize OpenTelemetry', err),
         );
     } else {
       console.log('[Tracing] OpenTelemetry initialized');
@@ -71,7 +67,4 @@ const resource = resourceFromAttributes({
   } catch (err: unknown) {
     console.error('[Tracing] Failed to initialize OpenTelemetry', err);
   }
-
 };
-
-

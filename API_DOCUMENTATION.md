@@ -1,27 +1,34 @@
 # Bite Brew Cafe Backend API Documentation
 
 Base URL:
+
 - `http://localhost:7000/api/v1/bite-brew`
 
 Auth:
+
 - Protected routes require `Authorization: Bearer <access_token>`.
 - Tokens are issued by signin/signup and also set in cookies, but route protection currently reads the bearer token from the header.
 
 Common response shape:
+
 - Success: `{ message, data? }` or `{ message, data, pagination }`
 - Error: `{ message }` (sometimes class-validator error arrays for auth DTO validation)
 
 ## Health
 
 ### `GET /health`
+
 Short explanation: Service health check.
+
 - Auth: No
 - Response: `200` with `{ ok: true, service: "bite-brew-cafe-backend" }`
 
 ## Auth
 
 ### `POST /auth/signup`
+
 Short explanation: Register a new user account.
+
 - Auth: No
 - Body:
   - `name` (string, required)
@@ -32,7 +39,9 @@ Short explanation: Register a new user account.
   - `400` invalid payload or user already exists
 
 ### `POST /auth/signin`
+
 Short explanation: Login user and issue JWT tokens.
+
 - Auth: No
 - Body:
   - `email` (required)
@@ -42,13 +51,17 @@ Short explanation: Login user and issue JWT tokens.
   - `400` invalid credentials/payload
 
 ### `POST /auth/logout`
+
 Short explanation: Logout user by clearing auth cookies.
+
 - Auth: No
 - Response:
   - `200` logout success
 
 ### `POST /auth/refresh-token`
+
 Short explanation: Issue new access/refresh tokens using a valid refresh token.
+
 - Auth: No
 - Cookie/Body:
   - `refresh_token` (required; read from `refresh_token` cookie, or request body fallback)
@@ -57,7 +70,9 @@ Short explanation: Issue new access/refresh tokens using a valid refresh token.
   - `401` unauthorized (missing/invalid/expired refresh token)
 
 ### `POST /auth/forgot-password`
+
 Short explanation: Send password reset email with reset token.
+
 - Auth: No
 - Body:
   - `email` (required)
@@ -67,7 +82,9 @@ Short explanation: Send password reset email with reset token.
   - `400` validation error
 
 ### `POST /auth/reset-password`
+
 Short explanation: Reset password using token sent by email.
+
 - Auth: No
 - Body:
   - `email` (required)
@@ -84,14 +101,18 @@ Short explanation: Reset password using token sent by email.
 Protected by the session-aware auth middleware (`sessionAuth` / `jwtVerify`). All endpoints validate the JWT plus the active Redis session, account status, lock status, and (optionally) device fingerprint.
 
 ### `GET /sessions`
+
 Short explanation: List the current user's sessions and identify the current device.
+
 - Auth: Yes (authenticated user)
 - Response:
   - `200` with `{ message, data }` where `data` is an array of sessions each including `sessionId`, `isCurrent`, `isActive`, `device`, `ipAddress`, `status`, `lastActivityAt`, `revokedAt`, `createdAt`
   - `401` unauthorized
 
 ### `POST /sessions/:sessionId/revoke`
+
 Short explanation: Revoke a selected session (invalidates its refresh tokens and force-logs-out its live sockets).
+
 - Auth: Yes (authenticated user)
 - Path:
   - `sessionId` (required)
@@ -102,7 +123,9 @@ Short explanation: Revoke a selected session (invalidates its refresh tokens and
   - `401` unauthorized
 
 ### `POST /sessions/revoke-others`
+
 Short explanation: Revoke all sessions except the current one.
+
 - Auth: Yes (authenticated user)
 - Response:
   - `200` with `{ data: { revokedCount } }`
@@ -110,7 +133,9 @@ Short explanation: Revoke all sessions except the current one.
   - `401` unauthorized
 
 ### `POST /sessions/logout-all`
+
 Short explanation: Logout all devices (revokes all sessions + tokens, clears cookies).
+
 - Auth: Yes (authenticated user)
 - Response:
   - `200` sessions revoked
@@ -119,7 +144,9 @@ Short explanation: Logout all devices (revokes all sessions + tokens, clears coo
 ## Login History
 
 ### `GET /login-history`
+
 Short explanation: List recent login history for the current user (paginated).
+
 - Auth: Yes (authenticated user)
 - Query:
   - `limit` (optional, default `20`, max `100`)
@@ -131,7 +158,9 @@ Short explanation: List recent login history for the current user (paginated).
 ## Users
 
 ### `GET /users`
+
 Short explanation: List users with pagination and search.
+
 - Auth: Yes (`admin`, `manager`)
 - Query:
   - `page` (optional, default `1`)
@@ -140,7 +169,9 @@ Short explanation: List users with pagination and search.
 - Response: `200` with `{ data, pagination }`
 
 ### `GET /users/me`
+
 Short explanation: Get current authenticated user profile.
+
 - Auth: Yes (any authenticated user)
 - Response:
   - `200` current user
@@ -148,7 +179,9 @@ Short explanation: Get current authenticated user profile.
   - `404` user not found
 
 ### `PATCH /users/:id/role`
+
 Short explanation: Update user role.
+
 - Auth: Yes (`admin`)
 - Body:
   - `role` (required; one of `admin | user | manager`)
@@ -160,14 +193,18 @@ Short explanation: Update user role.
 ## Menu - Categories
 
 ### `GET /menu/categories`
+
 Short explanation: List categories.
+
 - Auth: No
 - Query:
   - `page`, `limit`, `search` (optional)
 - Response: `200` paginated categories
 
 ### `POST /menu/categories`
+
 Short explanation: Create a menu category.
+
 - Auth: Yes (`admin`, `manager`)
 - Body:
   - `name` (required)
@@ -176,20 +213,26 @@ Short explanation: Create a menu category.
 - Response: `201` created, `400` bad request
 
 ### `PATCH /menu/categories/:id`
+
 Short explanation: Update category fields.
+
 - Auth: Yes (`admin`, `manager`)
 - Body: any of `name`, `description`, `isActive`
 - Response: `200` updated, `404` not found
 
 ### `DELETE /menu/categories/:id`
+
 Short explanation: Delete category.
+
 - Auth: Yes (`admin`)
 - Response: `200` deleted, `404` not found
 
 ## Menu - Items
 
 ### `GET /menu/items`
+
 Short explanation: List menu items.
+
 - Auth: No
 - Query:
   - `page`, `limit` (optional)
@@ -199,7 +242,9 @@ Short explanation: List menu items.
 - Response: `200` paginated menu items
 
 ### `POST /menu/items`
+
 Short explanation: Create a menu item.
+
 - Auth: Yes (`admin`, `manager`)
 - Content-Type:
   - `application/json` or `multipart/form-data`
@@ -215,20 +260,26 @@ Short explanation: Create a menu item.
   - `400` category not found or invalid payload
 
 ### `PATCH /menu/items/:id`
+
 Short explanation: Update menu item fields.
+
 - Auth: Yes (`admin`, `manager`)
 - Body: any editable menu item fields
 - Response: `200` updated, `404` not found
 
 ### `DELETE /menu/items/:id`
+
 Short explanation: Delete menu item.
+
 - Auth: Yes (`admin`)
 - Response: `200` deleted, `404` not found
 
 ## Orders
 
 ### `POST /orders`
+
 Short explanation: Place an order (guest or authenticated user).
+
 - Auth: No (optional auth supported)
 - Body:
   - `customerName` (required)
@@ -239,7 +290,9 @@ Short explanation: Place an order (guest or authenticated user).
   - `400` bad request or invalid menu items
 
 ### `GET /orders`
+
 Short explanation: List orders with filters.
+
 - Auth: Yes (`admin`, `manager`)
 - Query:
   - `page`, `limit` (optional)
@@ -248,26 +301,34 @@ Short explanation: List orders with filters.
 - Response: `200` paginated orders
 
 ### `GET /orders/:id`
+
 Short explanation: Get order details by ID.
+
 - Auth: Yes (any authenticated user)
 - Response: `200` found, `404` not found
 
 ### `PATCH /orders/:id/status`
+
 Short explanation: Update order status.
+
 - Auth: Yes (`admin`, `manager`)
 - Body:
   - `status` (required; `pending|confirmed|preparing|ready|completed|cancelled`)
 - Response: `200` updated, `400` invalid status, `404` not found
 
 ### `PATCH /orders/:id/priority`
+
 Short explanation: Update order priority so UI can show the order with different color urgency.
+
 - Auth: Yes (`admin`, `manager`)
 - Body:
   - `priority` (required; `HIGH|MEDIUM|LOW`)
 - Response: `200` updated, `400` invalid priority, `404` not found
 
 ### `DELETE /orders/:id`
+
 Short explanation: Delete an order by ID.
+
 - Auth: Yes (`admin`, `manager`)
 - Response: `200` deleted, `404` not found
 
@@ -360,7 +421,9 @@ Each transaction may include:
 - `createdAt`
 
 ### `POST /loyalty/accounts`
+
 Short explanation: Create the authenticated customer's loyalty account. Usually optional because dashboard lazy-creates an account if missing.
+
 - Auth: Yes
 - Body:
   - `referralCode` (optional string, 3-20 characters; if omitted, backend generates one)
@@ -378,7 +441,9 @@ Short explanation: Create the authenticated customer's loyalty account. Usually 
   - `401` unauthorized
 
 ### `GET /loyalty/dashboard`
+
 Short explanation: Get the authenticated customer's loyalty account snapshot.
+
 - Auth: Yes
 - Body: none
 - Response: `200` with account, streak, and active reward count
@@ -406,13 +471,17 @@ Short explanation: Get the authenticated customer's loyalty account snapshot.
 ```
 
 ### `GET /loyalty/catalog`
+
 Short explanation: List active, non-expired rewards customers can redeem.
+
 - Auth: No
 - Body: none
 - Response: `200` active reward catalog
 
 ### `GET /loyalty/wallet`
+
 Short explanation: List rewards already redeemed by the authenticated customer.
+
 - Auth: Yes
 - Body: none
 - Response: `200` wallet items with reward catalog details
@@ -433,7 +502,9 @@ Short explanation: List rewards already redeemed by the authenticated customer.
 ```
 
 ### `POST /loyalty/redeem`
+
 Short explanation: Redeem a reward using current points. The reward is issued into the customer's wallet.
+
 - Auth: Yes
 - Body:
   - `rewardId` (UUID, required)
@@ -464,7 +535,9 @@ Short explanation: Redeem a reward using current points. The reward is issued in
   - `401` unauthorized
 
 ### `POST /loyalty/check-in`
+
 Short explanation: Award daily check-in points and maintain streak count.
+
 - Auth: Yes
 - Body: none
 - Default calculation:
@@ -489,7 +562,9 @@ Day 7 = 20 points
   - `401` unauthorized
 
 ### `POST /loyalty/referral/claim`
+
 Short explanation: Claim another customer's referral code. Points are awarded only after the referred customer completes their first order.
+
 - Auth: Yes
 - Body:
   - `referralCode` (required string)
@@ -517,7 +592,9 @@ Short explanation: Claim another customer's referral code. Points are awarded on
   - `401` unauthorized
 
 ### `GET /loyalty/history`
+
 Short explanation: Get paginated loyalty point transaction history for the authenticated customer.
+
 - Auth: Yes
 - Query:
   - `page` (optional, default `1`)
@@ -532,13 +609,17 @@ GET /loyalty/history?page=1&limit=10&type=EARNING
 - Response: `200` with `{ data, pagination }`
 
 ### `PATCH /loyalty/admin/config`
+
 Short explanation: Return active loyalty rules and requested config payload. Runtime persistence is not currently implemented.
+
 - Auth: Yes (`admin`)
 - Body: free-form object
 - Response: `200`
 
 ### `POST /loyalty/admin/adjust-points`
+
 Short explanation: Manually grant or deduct points for a customer.
+
 - Auth: Yes (`admin`)
 - Body:
   - `customerId` (UUID, required)
@@ -566,7 +647,9 @@ Short explanation: Manually grant or deduct points for a customer.
   - `404` loyalty account not found
 
 ### `POST /loyalty/admin/catalog`
+
 Short explanation: Create a reward catalog item.
+
 - Auth: Yes (`admin`)
 - Body:
   - `title` (required string)
@@ -601,7 +684,9 @@ Short explanation: Create a reward catalog item.
   - `400` invalid payload
 
 ### `GET /loyalty/admin/analytics`
+
 Short explanation: Get aggregate loyalty transaction metrics over an optional date range.
+
 - Auth: Yes (`admin`)
 - Query:
   - `start` (optional date string)
@@ -628,7 +713,9 @@ GET /loyalty/admin/analytics?start=2026-07-01&end=2026-07-31
 ## Messages
 
 ### `POST /messages`
+
 Short explanation: Submit a customer message/contact request.
+
 - Auth: No
 - Body:
   - `senderName` (required)
@@ -637,7 +724,9 @@ Short explanation: Submit a customer message/contact request.
 - Response: `201` created, `400` bad request
 
 ### `GET /messages`
+
 Short explanation: List messages.
+
 - Auth: Yes (`admin`, `manager`)
 - Query:
   - `page`, `limit` (optional)
@@ -645,21 +734,27 @@ Short explanation: List messages.
 - Response: `200` paginated messages
 
 ### `PATCH /messages/:id/read`
+
 Short explanation: Mark a message read/unread.
+
 - Auth: Yes (`admin`, `manager`)
 - Body:
   - `isRead` (optional; defaults to `true`)
 - Response: `200` updated, `404` not found
 
 ### `DELETE /messages/:id`
+
 Short explanation: Delete message.
+
 - Auth: Yes (`admin`)
 - Response: `200` deleted, `404` not found
 
 ## Newsletter
 
 ### `POST /newsletter/subscribe`
+
 Short explanation: Subscribe an email to newsletter.
+
 - Auth: No
 - Body:
   - `email` (required)
@@ -671,7 +766,9 @@ Short explanation: Subscribe an email to newsletter.
   - On new subscription, a welcome email is queued through BullMQ (`email` queue) and sent asynchronously by the worker.
 
 ### `GET /newsletter`
+
 Short explanation: List newsletter subscribers.
+
 - Auth: Yes (`admin`, `manager`)
 - Query:
   - `page`, `limit` (optional)
@@ -679,7 +776,9 @@ Short explanation: List newsletter subscribers.
 - Response: `200` paginated subscribers
 
 ### `POST /newsletter/campaign`
+
 Short explanation: Queue a promotional newsletter campaign to subscribed and/or registered users.
+
 - Auth: Yes (`admin`, `manager`)
 - Body:
   - `subject` (required string)
@@ -702,21 +801,27 @@ Short explanation: Queue a promotional newsletter campaign to subscribed and/or 
   - Emails are queued via BullMQ `email` queue and sent asynchronously.
 
 ### `PATCH /newsletter/:id/status`
+
 Short explanation: Update subscriber status.
+
 - Auth: Yes (`admin`, `manager`)
 - Body:
   - `status` (required, free-form string)
 - Response: `200` updated, `404` not found
 
 ### `DELETE /newsletter/:id`
+
 Short explanation: Delete subscriber.
+
 - Auth: Yes (`admin`)
 - Response: `200` deleted, `404` not found
 
 ## Notifications
 
 ### `POST /notifications`
+
 Short explanation: Create a notification.
+
 - Auth: Yes (`admin`, `manager`)
 - Body:
   - `content` (required)
@@ -727,7 +832,9 @@ Short explanation: Create a notification.
 - Response: `201` created, `400` bad request
 
 ### `GET /notifications`
+
 Short explanation: List notifications.
+
 - Auth: Yes (any authenticated user)
 - Query:
   - `page`, `limit` (optional)
@@ -736,21 +843,27 @@ Short explanation: List notifications.
 - Response: `200` paginated notifications
 
 ### `PATCH /notifications/:id/read`
+
 Short explanation: Mark one notification read/unread.
+
 - Auth: Yes (any authenticated user)
 - Body:
   - `isRead` (optional; defaults to `true`)
 - Response: `200` updated, `404` not found
 
 ### `PATCH /notifications/read-all`
+
 Short explanation: Mark all notifications as read for one user.
+
 - Auth: Yes (any authenticated user)
 - Body:
   - `userId` (optional; falls back to authenticated user id)
 - Response: `200` updated, `400` bad request
 
 ### `PATCH /notifications/:id`
+
 Short explanation: Update notification fields.
+
 - Auth: Yes (`admin`, `manager`)
 - Body:
   - `content` (optional)
@@ -761,14 +874,18 @@ Short explanation: Update notification fields.
 - Response: `200` updated, `400` invalid payload, `404` not found
 
 ### `DELETE /notifications/:id`
+
 Short explanation: Delete one notification.
+
 - Auth: Yes (`admin`, `manager`)
 - Response: `200` deleted, `404` not found
 
 ## Gallery
 
 ### `GET /gallery`
+
 Short explanation: List gallery images.
+
 - Auth: No
 - Query:
   - `page`, `limit` (optional)
@@ -777,7 +894,9 @@ Short explanation: List gallery images.
 - Response: `200` paginated images
 
 ### `POST /gallery`
+
 Short explanation: Add gallery image entry.
+
 - Auth: Yes (`admin`, `manager`)
 - Content-Type:
   - `application/json` or `multipart/form-data`
@@ -788,20 +907,26 @@ Short explanation: Add gallery image entry.
 - Response: `201` created, `400` bad request
 
 ### `PATCH /gallery/:id`
+
 Short explanation: Update gallery image fields.
+
 - Auth: Yes (`admin`, `manager`)
 - Body: any editable gallery fields
 - Response: `200` updated, `404` not found
 
 ### `DELETE /gallery/:id`
+
 Short explanation: Delete gallery image.
+
 - Auth: Yes (`admin`)
 - Response: `200` deleted, `404` not found
 
 ## Uploads
 
 ### `POST /uploads/image`
+
 Short explanation: Upload an image file to Cloudinary and return hosted metadata.
+
 - Auth: Yes (`admin`, `manager`)
 - Content-Type: `multipart/form-data`
 - Form data:
@@ -815,7 +940,9 @@ Short explanation: Upload an image file to Cloudinary and return hosted metadata
 ## Dashboard
 
 ### `GET /dashboard/overview`
+
 Short explanation: Dashboard cards and recent orders.
+
 - Auth: Yes (`admin`, `manager`)
 - Query:
   - `limit` (optional; recent orders count, clamped to `1..20`, default `5`)
@@ -824,7 +951,9 @@ Short explanation: Dashboard cards and recent orders.
 ## Analytics
 
 ### `GET /analytics/summary`
+
 Short explanation: Overall analytics summary.
+
 - Auth: Yes (`admin`, `manager`)
 - Query:
   - `days` (optional; default `7`, minimum `1`)
@@ -833,7 +962,9 @@ Short explanation: Overall analytics summary.
 ## Reports
 
 ### `GET /reports/sales`
+
 Short explanation: Sales report by date range with top-selling items.
+
 - Auth: Yes (`admin`, `manager`)
 - Query:
   - `from` (optional date string; default `now - 30 days`)

@@ -1,28 +1,28 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
-import { MessageSource } from "../../constant/enum.constant";
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { MessageSource } from '../../constant/enum.constant';
 
-@Entity("messages")
+@Entity('messages')
 export class Message {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column()
   senderName!: string;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   phone?: string;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   email?: string;
 
-  @Column({ type: "text" })
+  @Column({ type: 'text' })
   content!: string;
 
   @Index()
   @Column({ default: false })
   isRead!: boolean;
 
-  @Column({ type: "enum", enum: MessageSource, default: MessageSource.WEBSITE })
+  @Column({ type: 'enum', enum: MessageSource, default: MessageSource.WEBSITE })
   source!: string;
 
   @CreateDateColumn()

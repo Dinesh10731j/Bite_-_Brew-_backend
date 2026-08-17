@@ -17,4 +17,3 @@ export const workerOptions: WorkerOptions = { connection: redisConnection };
  * Create a new queue.
  */
 export const createQueue = (name: string) => new Queue(name, queueOptions);
-

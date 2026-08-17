@@ -1,9 +1,6 @@
 import { CorsOptions } from 'cors';
 
-const PUBLIC_ORIGINS = [
-  'https://bitebrewdashboard.netlify.app',
-  'https://bitebrew.netlify.app',
-];
+const PUBLIC_ORIGINS = ['https://bitebrewdashboard.netlify.app', 'https://bitebrew.netlify.app'];
 
 const DEFAULT_DEV_ORIGINS = [
   'http://localhost:3000',
@@ -64,7 +61,7 @@ export const corsOptions: CorsOptions = {
   origin: originHandler,
   credentials: true,
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-allowedHeaders: [
+  allowedHeaders: [
     'Content-Type',
     'Authorization',
     'X-Requested-With',

@@ -1,11 +1,11 @@
-import { Request, Response } from "express";
-import { NotificationPriority, NotificationType } from "../../constant/enum.constant";
-import { HTTP_STATUS } from "../../constant/statusCode.interface";
-import { Message as AppMessage } from "../../constant/message.interface";
-import { MessageRepository } from "../../repository/message/message.repository";
-import { NotificationRepository } from "../../repository/notification/notification.repository";
-import { MessageService } from "../../service/message/message.service";
-import { NotificationsService } from "../../service/notifications/notifications.service";
+import { Request, Response } from 'express';
+import { NotificationPriority, NotificationType } from '../../constant/enum.constant';
+import { HTTP_STATUS } from '../../constant/statusCode.interface';
+import { Message as AppMessage } from '../../constant/message.interface';
+import { MessageRepository } from '../../repository/message/message.repository';
+import { NotificationRepository } from '../../repository/notification/notification.repository';
+import { MessageService } from '../../service/message/message.service';
+import { NotificationsService } from '../../service/notifications/notifications.service';
 
 const messageService = new MessageService(new MessageRepository());
 const notificationsService = new NotificationsService(new NotificationRepository());
@@ -19,7 +19,7 @@ export class MessagesController {
       }
       const data = await messageService.create(req.body);
       try {
-        const messageId = String((data as { id?: string })?.id || "");
+        const messageId = String((data as { id?: string })?.id || '');
         await notificationsService.create({
           content: `New message received from ${senderName}.`,
           type: NotificationType.MESSAGE,
@@ -31,7 +31,9 @@ export class MessagesController {
       }
       return res.status(HTTP_STATUS.CREATED).json({ message: AppMessage.CREATED_SUCCESS, data });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: AppMessage.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: AppMessage.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -40,7 +42,9 @@ export class MessagesController {
       const result = await messageService.list(req.query);
       return res.status(HTTP_STATUS.OK).json({ message: AppMessage.SUCCESS, ...result });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: AppMessage.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: AppMessage.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -54,7 +58,9 @@ export class MessagesController {
       }
       return res.status(HTTP_STATUS.OK).json({ message: AppMessage.UPDATED_SUCCESS, data });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: AppMessage.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: AppMessage.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -68,7 +74,9 @@ export class MessagesController {
       }
       return res.status(HTTP_STATUS.OK).json({ message: AppMessage.DELETED_SUCCESS });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: AppMessage.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: AppMessage.INTERNAL_SERVER_ERROR });
     }
   }
 }

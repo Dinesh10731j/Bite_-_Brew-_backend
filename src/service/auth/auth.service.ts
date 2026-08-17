@@ -1,29 +1,49 @@
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
-import jwt from "jsonwebtoken";
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { getPerfTracker } from '../../perf/perfContext';
 
-import { HTTP_STATUS } from "../../constant/statusCode.interface";
-import { Message } from "../../constant/message.interface";
-import { UserRole, LoginStatus, SecurityEventType, AuditAction } from "../../constant/enum.constant";
-import { SignInDTO, SignUpDTO } from "../../dto/user/user.dto";
-import { AuthRepository } from "../../repository/auth/auth.repository";
-import { ServiceResult } from "../../types/service_result";
-import { sendSmtpMail } from "../../configs/smtp.config";
-import { buildResetPasswordTemplate, buildResetPasswordTextTemplate } from "../../templates/auth.template";
-import { envConfig } from "../../configs/env.config";
-import { SessionService } from "../security/session.service";
-import { DeviceService, DeviceFingerprintInput } from "../security/device.service";
-import { RefreshTokenService } from "../security/refreshToken.service";
-import { RegistrationProtectionService, RegistrationContext } from "../security/registrationProtection.service";
-import { LoginMonitorService } from "../security/loginMonitor.service";
-import { SecurityEventService } from "../security/securityEvent.service";
-import { SecurityAuditService } from "../security/securityAudit.service";
+import { HTTP_STATUS } from '../../constant/statusCode.interface';
+import { Message } from '../../constant/message.interface';
+import {
+  UserRole,
+  LoginStatus,
+  SecurityEventType,
+  AuditAction,
+} from '../../constant/enum.constant';
+import { SignInDTO, SignUpDTO } from '../../dto/user/user.dto';
+import { AuthRepository } from '../../repository/auth/auth.repository';
+import { ServiceResult } from '../../types/service_result';
+import { sendSmtpMail } from '../../configs/smtp.config';
+import {
+  buildResetPasswordTemplate,
+  buildResetPasswordTextTemplate,
+} from '../../templates/auth.template';
+import { envConfig } from '../../configs/env.config';
+import { SessionService } from '../security/session.service';
+import { DeviceService, DeviceFingerprintInput } from '../security/device.service';
+import { RefreshTokenService } from '../security/refreshToken.service';
+import {
+  RegistrationProtectionService,
+  RegistrationContext,
+} from '../security/registrationProtection.service';
+import { LoginMonitorService } from '../security/loginMonitor.service';
+import { SecurityEventService } from '../security/securityEvent.service';
+import { SecurityAuditService } from '../security/securityAudit.service';
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || process.env.ACCESS_TOKEN_SECRET || "access_secret";
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || process.env.REFRESH_TOKEN_SECRET || "refresh_secret";
-const ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || envConfig.JWT_ACCESS_EXPIRES_IN || "15m";
-const REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || envConfig.JWT_REFRESH_EXPIRES_IN || "30d";
+
+const {FRONTEND_URL,ACCESS_TOKEN_SECRET,REFRESH_TOKEN_SECRET,JWT_ACCESS_EXPIRES_IN,JWT_REFRESH_EXPIRES_IN} = envConfig
+
+const ACCESS_SECRET =
+  process.env.JWT_ACCESS_SECRET || process.env.ACCESS_TOKEN_SECRET || 'access_secret';
+const REFRESH_SECRET =
+  process.env.JWT_REFRESH_SECRET || process.env.REFRESH_TOKEN_SECRET || 'refresh_secret';
+const ACCESS_EXPIRES_IN =
+  process.env.JWT_ACCESS_EXPIRES_IN || envConfig.JWT_ACCESS_EXPIRES_IN || '15m';
+const REFRESH_EXPIRES_IN =
+  process.env.JWT_REFRESH_EXPIRES_IN || envConfig.JWT_REFRESH_EXPIRES_IN || '30d';
+
+ 
 
 export interface AuthContext {
   ip: string;
@@ -62,7 +82,9 @@ export class AuthService {
     if (ctx) {
       const regCtx: RegistrationContext = {
         ip: ctx.ip,
-        deviceHash: ctx.device?.visitorId ? this.deviceService.hashFingerprint(ctx.device) : undefined,
+        deviceHash: ctx.device?.visitorId
+          ? this.deviceService.hashFingerprint(ctx.device)
+          : undefined,
         email,
         userAgent: ctx.userAgent,
         country: ctx.country,
@@ -71,11 +93,16 @@ export class AuthService {
       const check = await this.registrationProtection.checkRegistration(regCtx);
       if (!check.allowed) {
         await this.registrationProtection.recordRegistration(regCtx, check);
-const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCode?: number };
+        const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & {
+          statusCode?: number;
+        };
         err.statusCode = HTTP_STATUS.TOO_MANY_REQUESTS;
         throw err;
       }
-      await this.registrationProtection.recordRegistration(regCtx, { allowed: true, status: check.status });
+      await this.registrationProtection.recordRegistration(regCtx, {
+        allowed: true,
+        status: check.status,
+      });
     }
 
     const existing = await this.authRepository.findByEmail(email);
@@ -92,7 +119,12 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
     });
 
     await this.audit.audit({ userId: user.id, action: AuditAction.SIGNUP, ipAddress: ctx?.ip });
-    await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.REGISTRATION, ipAddress: ctx?.ip, isHighRisk: false });
+    await this.securityEvent.recordEvent({
+      userId: user.id,
+      type: SecurityEventType.REGISTRATION,
+      ipAddress: ctx?.ip,
+      isHighRisk: false,
+    });
 
     // Create session + tokens for immediate sign-in.
     return this.issueTokens(user, ctx);
@@ -101,7 +133,14 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
   /**
    * Sign in an existing user with login monitoring, account lock, single-active-session.
    */
-  async signin(dto: SignInDTO, ctx?: AuthContext): Promise<{ tokens: AuthTokens; user: { id: string; name: string; email: string; role: string }; revokedSessionId?: string }> {
+  async signin(
+    dto: SignInDTO,
+    ctx?: AuthContext,
+  ): Promise<{
+    tokens: AuthTokens;
+    user: { id: string; name: string; email: string; role: string };
+    revokedSessionId?: string;
+  }> {
     const email = dto.email.trim().toLowerCase();
     const password = dto.password.trim();
 
@@ -112,13 +151,22 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
       : await this.authRepository.findByEmail(email);
 
     if (!user) {
-      await this.audit.audit({ action: AuditAction.LOGIN_FAILED, ipAddress: ctx?.ip, description: "unknown email" });
+      await this.audit.audit({
+        action: AuditAction.LOGIN_FAILED,
+        ipAddress: ctx?.ip,
+        description: 'unknown email',
+      });
       throw new Error(Message.INVALID_EMAIL_OR_PASSWORD);
     }
 
     // Account lock check.
     if (this.loginMonitor.isAccountLocked(user)) {
-      await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.ACCOUNT_LOCKED, ipAddress: ctx?.ip, isHighRisk: true });
+      await this.securityEvent.recordEvent({
+        userId: user.id,
+        type: SecurityEventType.ACCOUNT_LOCKED,
+        ipAddress: ctx?.ip,
+        isHighRisk: true,
+      });
       const err = new Error(Message.ACCOUNT_LOCKED) as Error & { statusCode?: number };
       err.statusCode = HTTP_STATUS.FORBIDDEN;
       throw err;
@@ -131,9 +179,18 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
       ok = await bcrypt.compare(password, user.password);
     }
     if (!ok) {
-      const { locked } = await this.loginMonitor.recordFailedLogin(user, ctx?.ip || "unknown");
-      await this.audit.audit({ userId: user.id, action: AuditAction.LOGIN_FAILED, ipAddress: ctx?.ip });
-      await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.LOGIN_FAILED, ipAddress: ctx?.ip, isHighRisk: true });
+      const { locked } = await this.loginMonitor.recordFailedLogin(user, ctx?.ip || 'unknown');
+      await this.audit.audit({
+        userId: user.id,
+        action: AuditAction.LOGIN_FAILED,
+        ipAddress: ctx?.ip,
+      });
+      await this.securityEvent.recordEvent({
+        userId: user.id,
+        type: SecurityEventType.LOGIN_FAILED,
+        ipAddress: ctx?.ip,
+        isHighRisk: true,
+      });
       if (locked) {
         const err = new Error(Message.ACCOUNT_LOCKED) as Error & { statusCode?: number };
         err.statusCode = HTTP_STATUS.FORBIDDEN;
@@ -143,9 +200,9 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
     }
 
     // Reset failed counters on success.
-    await this.loginMonitor.resetFailedLogin(user, ctx?.ip || "unknown");
+    await this.loginMonitor.resetFailedLogin(user, ctx?.ip || 'unknown');
 
-// Issue tokens + session (enforces single active session).
+    // Issue tokens + session (enforces single active session).
     const result = await this.issueTokens(user, ctx);
 
     // The device object is built/parsed inside issueTokens; use it to backfill
@@ -156,7 +213,7 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
       userId: user.id,
       sessionId: result.tokens.session_id,
       deviceHash: device.deviceHash,
-      ip: ctx?.ip || "unknown",
+      ip: ctx?.ip || 'unknown',
       country: ctx?.country,
       city: ctx?.city,
       browser: device.browser,
@@ -164,7 +221,12 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
       platform: device.platform,
       status: LoginStatus.SUCCESS,
     });
-    await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.LOGIN, ipAddress: ctx?.ip, sessionId: result.tokens.session_id });
+    await this.securityEvent.recordEvent({
+      userId: user.id,
+      type: SecurityEventType.LOGIN,
+      ipAddress: ctx?.ip,
+      sessionId: result.tokens.session_id,
+    });
 
     return {
       tokens: result.tokens,
@@ -177,7 +239,10 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
    * Issue access token + refresh token + session for a user.
    * Enforces Netflix-style single active session.
    */
-  private async issueTokens(user: { id: string }, ctx?: AuthContext): Promise<{ tokens: AuthTokens; revokedSessionId?: string }> {
+  private async issueTokens(
+    user: { id: string },
+    ctx?: AuthContext,
+  ): Promise<{ tokens: AuthTokens; revokedSessionId?: string }> {
     // Build device fingerprint.
     const device = this.deviceService.buildDevice(ctx?.device || {});
     const deviceHash = device.deviceHash;
@@ -203,11 +268,19 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
     await this.deviceService.rememberDevice(deviceHash);
 
     // Create refresh token (rotation).
-    const refreshToken = await this.refreshTokenService.createRefreshToken(user.id, session.sessionId);
+    const refreshToken = await this.refreshTokenService.createRefreshToken(
+      user.id,
+      session.sessionId,
+    );
 
     // Build access token carrying sessionId.
     const access_token = jwt.sign(
-      { userId: user.id, sessionId: session.sessionId, deviceHash, role: (user as { role?: string }).role },
+      {
+        userId: user.id,
+        sessionId: session.sessionId,
+        deviceHash,
+        role: (user as { role?: string }).role,
+      },
       ACCESS_SECRET as jwt.Secret,
       { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions,
     );
@@ -226,7 +299,8 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
    * Refresh the access token with rotation + reuse detection.
    */
   async refreshAccessToken(refreshToken: string, ctx?: AuthContext): Promise<AuthTokens> {
-    const { userId, sessionId, newToken } = await this.refreshTokenService.verifyAndRotate(refreshToken);
+    const { userId, sessionId, newToken } =
+      await this.refreshTokenService.verifyAndRotate(refreshToken);
 
     const user = await this.authRepository.findById(userId);
     if (!user) {
@@ -252,8 +326,18 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
       { expiresIn: ACCESS_EXPIRES_IN } as jwt.SignOptions,
     );
 
-    await this.audit.audit({ userId, action: AuditAction.REFRESH_ROTATION, ipAddress: ctx?.ip, sessionId });
-    await this.securityEvent.recordEvent({ userId, type: SecurityEventType.REFRESH_TOKEN_ROTATED, ipAddress: ctx?.ip, sessionId });
+    await this.audit.audit({
+      userId,
+      action: AuditAction.REFRESH_ROTATION,
+      ipAddress: ctx?.ip,
+      sessionId,
+    });
+    await this.securityEvent.recordEvent({
+      userId,
+      type: SecurityEventType.REFRESH_TOKEN_ROTATED,
+      ipAddress: ctx?.ip,
+      sessionId,
+    });
 
     return { access_token, refresh_token: newToken.token, session_id: sessionId };
   }
@@ -275,29 +359,31 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
       return { status: HTTP_STATUS.NOT_FOUND };
     }
 
-    const token = crypto.randomBytes(24).toString("hex");
+    const token = crypto.randomBytes(24).toString('hex');
     user.resetToken = token;
     user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
     await this.authRepository.saveUser(user);
 
-    const frontendBase = process.env.FRONTEND_ORIGIN || process.env.FRONTEND_URL || "http://localhost:3000";
-    const resetUrl = `${frontendBase.replace(/\/$/, "")}/reset-password?email=${encodeURIComponent(user.email)}&token=${token}`;
-    const appName = process.env.APP_NAME || "Bite Brew Cafe";
-    const supportEmail = process.env.SUPPORT_EMAIL || process.env.SMTP_USER || "support@bitebrew.local";
+    const frontendBase =
+        FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${frontendBase.replace(/\/$/, '')}/reset-password?email=${encodeURIComponent(user.email)}&token=${token}`;
+    const appName = process.env.APP_NAME || 'Bite Brew Cafe';
+    const supportEmail =
+      process.env.SUPPORT_EMAIL || process.env.SMTP_USER || 'support@bitebrew.local';
 
     try {
       await sendSmtpMail({
         to: user.email,
         subject: `${appName} Password Reset`,
         html: buildResetPasswordTemplate({
-          name: user.name || "User",
+          name: user.name || 'User',
           resetUrl,
           appName,
           supportEmail,
           expiresInMinutes: 60,
         }),
         text: buildResetPasswordTextTemplate({
-          name: user.name || "User",
+          name: user.name || 'User',
           resetUrl,
           appName,
           supportEmail,
@@ -305,15 +391,22 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
         }),
       });
     } catch (error) {
-      console.error("Forgot password email delivery failed:", error);
-      console.error("Password reset URL (for debugging):", resetUrl);
-      return { status: HTTP_STATUS.INTERNAL_SERVER_ERROR, error: "Unable to deliver password reset email" };
+      console.error('Forgot password email delivery failed:', error);
+      console.error('Password reset URL (for debugging):', resetUrl);
+      return {
+        status: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        error: 'Unable to deliver password reset email',
+      };
     }
 
     return { status: HTTP_STATUS.OK, data: { resetUrl } };
   }
 
-  async resetPassword(email: string, token: string, password: string): Promise<ServiceResult<null>> {
+  async resetPassword(
+    email: string,
+    token: string,
+    password: string,
+  ): Promise<ServiceResult<null>> {
     const normalizedEmail = email.trim().toLowerCase();
     const cleanedToken = token.trim();
     const cleanedPassword = password.trim();
@@ -339,11 +432,15 @@ const err = new Error(Message.REGISTRATION_LIMIT_EXCEEDED) as Error & { statusCo
     await this.authRepository.saveUser(user);
 
     // Password reset invalidates all sessions.
-    await this.sessionService.revokeAllUserSessions(user.id, "password_reset");
-    await this.refreshTokenService.revokeAllUserTokens(user.id, "password_reset");
+    await this.sessionService.revokeAllUserSessions(user.id, 'password_reset');
+    await this.refreshTokenService.revokeAllUserTokens(user.id, 'password_reset');
     await this.audit.audit({ userId: user.id, action: AuditAction.PASSWORD_RESET });
-    await this.securityEvent.recordEvent({ userId: user.id, type: SecurityEventType.PASSWORD_RESET, isHighRisk: true });
+    await this.securityEvent.recordEvent({
+      userId: user.id,
+      type: SecurityEventType.PASSWORD_RESET,
+      isHighRisk: true,
+    });
 
-return { status: HTTP_STATUS.OK };
+    return { status: HTTP_STATUS.OK };
   }
 }

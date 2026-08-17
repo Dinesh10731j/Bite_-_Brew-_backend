@@ -32,7 +32,7 @@ export const requestContextMiddleware = (req: Request, res: Response, next: Next
     `${method} ${url}`,
     {
       kind: SpanKind.SERVER,
-attributes: {
+      attributes: {
         'http.request.method': method,
         'http.route': req.route?.path || url,
         'http.target': url,
@@ -47,7 +47,7 @@ attributes: {
   const ctx = trace.setSpan(extracted, span);
 
   context.with(ctx, () => {
-res.on('finish', () => {
+    res.on('finish', () => {
       span.setAttribute('http.response.status_code', res.statusCode);
       span.setAttribute('http.response_content_length', res.getHeader('content-length') as any);
       span.end();
@@ -55,4 +55,3 @@ res.on('finish', () => {
     next();
   });
 };
-

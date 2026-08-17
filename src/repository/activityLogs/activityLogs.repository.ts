@@ -1,8 +1,8 @@
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { UserRole } from "../../constant/enum.constant";
-import { VisitLog } from "../../entities/analytics/analytics.entity";
-import { AdminLog } from "../../entities/auth/auth.entity";
-import { Order } from "../../entities/order/order.entity";
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { UserRole } from '../../constant/enum.constant';
+import { VisitLog } from '../../entities/analytics/analytics.entity';
+import { AdminLog } from '../../entities/auth/auth.entity';
+import { Order } from '../../entities/order/order.entity';
 
 export class ActivityLogsRepository {
   private readonly visitRepo = AppDataSource.getRepository(VisitLog);
@@ -20,38 +20,41 @@ export class ActivityLogsRepository {
     const canViewAll = role === UserRole.ADMIN || role === UserRole.MANAGER;
     const effectiveUserId = canViewAll ? userId : currentUserId;
 
-    const visitQb = this.visitRepo.createQueryBuilder("visit")
-      .leftJoinAndSelect("visit.user", "user");
+    const visitQb = this.visitRepo
+      .createQueryBuilder('visit')
+      .leftJoinAndSelect('visit.user', 'user');
     if (effectiveUserId) {
-      visitQb.andWhere("visit.userId = :userId", { userId: effectiveUserId });
+      visitQb.andWhere('visit.userId = :userId', { userId: effectiveUserId });
     }
 
     const [visitLogs, visitTotal] = await visitQb
-      .orderBy("visit.visitedAt", "DESC")
+      .orderBy('visit.visitedAt', 'DESC')
       .take(limit * page)
       .getManyAndCount();
 
-    const orderQb = this.orderRepo.createQueryBuilder("order")
-      .leftJoinAndSelect("order.user", "user");
+    const orderQb = this.orderRepo
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.user', 'user');
     if (effectiveUserId) {
-      orderQb.andWhere("order.userId = :userId", { userId: effectiveUserId });
+      orderQb.andWhere('order.userId = :userId', { userId: effectiveUserId });
     }
 
     const [orderLogs, orderTotal] = await orderQb
-      .orderBy("order.updatedAt", "DESC")
+      .orderBy('order.updatedAt', 'DESC')
       .take(limit * page)
       .getManyAndCount();
 
     let adminLogs: AdminLog[] = [];
     let adminTotal = 0;
     if (canViewAll) {
-      const adminQb = this.adminRepo.createQueryBuilder("adminLog")
-        .leftJoinAndSelect("adminLog.admin", "admin");
+      const adminQb = this.adminRepo
+        .createQueryBuilder('adminLog')
+        .leftJoinAndSelect('adminLog.admin', 'admin');
       if (userId) {
-        adminQb.andWhere("adminLog.adminId = :adminId", { adminId: userId });
+        adminQb.andWhere('adminLog.adminId = :adminId', { adminId: userId });
       }
       const adminResult = await adminQb
-        .orderBy("adminLog.timestamp", "DESC")
+        .orderBy('adminLog.timestamp', 'DESC')
         .take(limit * page)
         .getManyAndCount();
       adminLogs = adminResult[0];

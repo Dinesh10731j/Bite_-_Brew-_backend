@@ -1,10 +1,10 @@
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { User } from "../../entities/user/user.entity";
-import { securityRedis } from "../../configs/redis.config";
-import { envConfig } from "../../configs/env.config";
-import { LoginStatus, SecurityEventType } from "../../constant/enum.constant";
-import { LoginHistory } from "../../entities/security/loginHistory.entity";
-import { SecurityEventService } from "./securityEvent.service";
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { User } from '../../entities/user/user.entity';
+import { securityRedis } from '../../configs/redis.config';
+import { envConfig } from '../../configs/env.config';
+import { LoginStatus, SecurityEventType } from '../../constant/enum.constant';
+import { LoginHistory } from '../../entities/security/loginHistory.entity';
+import { SecurityEventService } from './securityEvent.service';
 
 /**
  * LoginMonitorService
@@ -27,10 +27,13 @@ export class LoginMonitorService {
    * Record a failed login attempt. Increments the counter and, if the threshold
    * is exceeded, locks the account temporarily.
    */
-  async recordFailedLogin(user: User, ip: string): Promise<{ locked: boolean; lockedUntil?: Date }> {
+  async recordFailedLogin(
+    user: User,
+    ip: string,
+  ): Promise<{ locked: boolean; lockedUntil?: Date }> {
     // Increment Redis per-IP counter.
     try {
-      await securityRedis.incr("login_attempt", ip, envConfig.ACCOUNT_LOCK_DURATION_SECONDS);
+      await securityRedis.incr('login_attempt', ip, envConfig.ACCOUNT_LOCK_DURATION_SECONDS);
     } catch {
       // Non-fatal.
     }
@@ -68,7 +71,7 @@ export class LoginMonitorService {
       await AppDataSource.getRepository(User).save(user);
     }
     try {
-      await securityRedis.reset("login_attempt", ip);
+      await securityRedis.reset('login_attempt', ip);
     } catch {
       // Non-fatal.
     }
@@ -116,7 +119,7 @@ export class LoginMonitorService {
     }
   }
 
-/**
+  /**
    * Mark a login-history record logged out.
    */
   async markLogout(sessionId: string): Promise<void> {

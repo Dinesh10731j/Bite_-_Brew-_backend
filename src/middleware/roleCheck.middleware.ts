@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { User } from "../entities/user/user.entity";
+import { User } from '../entities/user/user.entity';
 
 /**
  * Role check middleware. Requires user in req.user from auth middleware.
@@ -15,4 +15,3 @@ export const roleCheck = (allowedRoles: string[]) => {
 };
 
 // Usage: export const isAdmin = roleCheck(['admin']);
-

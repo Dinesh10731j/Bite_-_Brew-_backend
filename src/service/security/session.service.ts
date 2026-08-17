@@ -1,9 +1,9 @@
-import crypto from "crypto";
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { Session } from "../../entities/security/session.entity";
-import { SessionStatus } from "../../constant/enum.constant";
-import { securityRedis } from "../../configs/redis.config";
-import { envConfig } from "../../configs/env.config";
+import crypto from 'crypto';
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { Session } from '../../entities/security/session.entity';
+import { SessionStatus } from '../../constant/enum.constant';
+import { securityRedis } from '../../configs/redis.config';
+import { envConfig } from '../../configs/env.config';
 
 export interface SessionData {
   sessionId: string;
@@ -59,7 +59,9 @@ export class SessionService {
    * If single-active-session is enabled, the previous session is revoked and
    * returned so the caller can force-logout the old socket.
    */
-  async createSession(payload: Omit<SessionData, "sessionId" | "lastActivityAt" | "createdAt" | "expiresAt">): Promise<{
+  async createSession(
+    payload: Omit<SessionData, 'sessionId' | 'lastActivityAt' | 'createdAt' | 'expiresAt'>,
+  ): Promise<{
     session: SessionData;
     revokedSessionId?: string;
   }> {
@@ -95,12 +97,17 @@ export class SessionService {
       const previous = await this.getActiveSession(payload.userId);
       if (previous) {
         revokedSessionId = previous.sessionId;
-        await this.revokeSession(previous.sessionId, payload.userId, SessionStatus.FORCED_LOGOUT, "replaced_by_new_login");
+        await this.revokeSession(
+          previous.sessionId,
+          payload.userId,
+          SessionStatus.FORCED_LOGOUT,
+          'replaced_by_new_login',
+        );
       }
     }
 
     // Write to Redis with TTL.
-    await securityRedis.set("session", payload.userId, JSON.stringify(sessionData), ttl);
+    await securityRedis.set('session', payload.userId, JSON.stringify(sessionData), ttl);
 
     // Persist to DB for auditing / session dashboard.
     await this.persistSession(sessionData);
@@ -112,7 +119,7 @@ export class SessionService {
    * Get the active session for a user from Redis.
    */
   async getActiveSession(userId: string): Promise<SessionData | null> {
-    const raw = await securityRedis.get("session", userId);
+    const raw = await securityRedis.get('session', userId);
     if (!raw) return null;
     try {
       return JSON.parse(raw) as SessionData;
@@ -121,7 +128,7 @@ export class SessionService {
     }
   }
 
-/**
+  /**
    * Validate that a sessionId is the active session for the user.
    * Returns true if the session is valid and not expired/idle.
    * On success the active session object is returned for downstream checks.
@@ -132,18 +139,18 @@ export class SessionService {
   ): Promise<{ valid: boolean; reason?: string; session?: SessionData }> {
     const session = await this.getActiveSession(userId);
     if (!session) {
-      return { valid: false, reason: "session_not_found" };
+      return { valid: false, reason: 'session_not_found' };
     }
     if (session.sessionId !== sessionId) {
-      return { valid: false, reason: "session_mismatch" };
+      return { valid: false, reason: 'session_mismatch' };
     }
     if (session.expiresAt < Date.now()) {
-      return { valid: false, reason: "session_expired" };
+      return { valid: false, reason: 'session_expired' };
     }
     // Idle session timeout.
     const idleTimeoutMs = envConfig.IDLE_SESSION_TIMEOUT_SECONDS * 1000;
     if (Date.now() - session.lastActivityAt > idleTimeoutMs) {
-      return { valid: false, reason: "session_idle" };
+      return { valid: false, reason: 'session_idle' };
     }
     return { valid: true, session };
   }
@@ -156,7 +163,7 @@ export class SessionService {
     if (!session || session.sessionId !== sessionId) return;
     session.lastActivityAt = Date.now();
     const ttl = this.sessionTtlSeconds();
-    await securityRedis.set("session", userId, JSON.stringify(session), ttl);
+    await securityRedis.set('session', userId, JSON.stringify(session), ttl);
     void this.touchDbSession(sessionId);
   }
 
@@ -175,12 +182,12 @@ export class SessionService {
     sessionId: string,
     userId: string,
     status: SessionStatus = SessionStatus.REVOKED,
-    reason = "manually_revoked",
+    reason = 'manually_revoked',
   ): Promise<void> {
     // Only delete the Redis key if it belongs to this user to avoid clobbering a newer session.
     const current = await this.getActiveSession(userId);
     if (current?.sessionId === sessionId) {
-      await securityRedis.del("session", userId);
+      await securityRedis.del('session', userId);
     }
     try {
       await this.sessionRepo.update(
@@ -195,8 +202,8 @@ export class SessionService {
   /**
    * Mark all sessions for a user as revoked (e.g. password change / force logout all).
    */
-  async revokeAllUserSessions(userId: string, reason = "revoked"): Promise<void> {
-    await securityRedis.del("session", userId);
+  async revokeAllUserSessions(userId: string, reason = 'revoked'): Promise<void> {
+    await securityRedis.del('session', userId);
     try {
       await this.sessionRepo.update(
         { userId, status: SessionStatus.ACTIVE },
@@ -244,25 +251,31 @@ export class SessionService {
   async listSessions(userId: string): Promise<Session[]> {
     return this.sessionRepo.find({
       where: { userId },
-      order: { createdAt: "DESC" },
+      order: { createdAt: 'DESC' },
     });
   }
 
-/**
+  /**
    * List active sessions excluding the current one.
    */
   async listSessionsExcept(userId: string, sessionId: string): Promise<Session[]> {
-    return this.sessionRepo.find({
-      where: { userId },
-      order: { createdAt: "DESC" },
-    }).then((rows) => rows.filter((s) => s.sessionId !== sessionId));
+    return this.sessionRepo
+      .find({
+        where: { userId },
+        order: { createdAt: 'DESC' },
+      })
+      .then((rows) => rows.filter((s) => s.sessionId !== sessionId));
   }
 
   /**
    * Revoke all sessions for a user except the given sessionId.
    * Used by "revoke all except current" in the session dashboard.
    */
-  async revokeSessionsExcept(userId: string, sessionId: string, reason = "revoked_except_current"): Promise<string[]> {
+  async revokeSessionsExcept(
+    userId: string,
+    sessionId: string,
+    reason = 'revoked_except_current',
+  ): Promise<string[]> {
     const active = await this.sessionRepo.find({
       where: { userId, status: SessionStatus.ACTIVE },
     });
@@ -282,7 +295,11 @@ export class SessionService {
   /**
    * Revoke a specific session by sessionId for a user (used by session dashboard).
    */
-  async revokeSessionById(userId: string, sessionId: string, reason = "manually_revoked"): Promise<boolean> {
+  async revokeSessionById(
+    userId: string,
+    sessionId: string,
+    reason = 'manually_revoked',
+  ): Promise<boolean> {
     const record = await this.sessionRepo.findOne({ where: { sessionId, userId } });
     if (!record) {
       return false;

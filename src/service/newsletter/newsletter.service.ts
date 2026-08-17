@@ -1,9 +1,12 @@
-import { enqueueBulkEmail, enqueueEmail } from "../../queue/email.queue";
-import { NewsletterRepository } from "../../repository/newsletter/newsletter.repository";
-import { buildNewsletterCampaignTemplate, buildNewsletterWelcomeTemplate } from "../../templates/newsletter.template";
-import { buildPaginationMeta, parsePagination } from "../../utils/helpers/pagination_helper";
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { User } from "../../entities/user/user.entity";
+import { enqueueBulkEmail, enqueueEmail } from '../../queue/email.queue';
+import { NewsletterRepository } from '../../repository/newsletter/newsletter.repository';
+import {
+  buildNewsletterCampaignTemplate,
+  buildNewsletterWelcomeTemplate,
+} from '../../templates/newsletter.template';
+import { buildPaginationMeta, parsePagination } from '../../utils/helpers/pagination_helper';
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { User } from '../../entities/user/user.entity';
 
 type NewsletterCampaignPayload = {
   subject: string;
@@ -28,8 +31,8 @@ export class NewsletterService {
   async subscribe(email: string) {
     const existing = await this.repository.findByEmail(email);
     if (existing) {
-      if (existing.status !== "active") {
-        existing.status = "active";
+      if (existing.status !== 'active') {
+        existing.status = 'active';
         await this.repository.save(existing);
       }
       return { data: existing, alreadySubscribed: true };
@@ -39,11 +42,11 @@ export class NewsletterService {
     try {
       await enqueueEmail({
         to: subscriber.email,
-        subject: "Welcome to Bite Brew Cafe Newsletter",
+        subject: 'Welcome to Bite Brew Cafe Newsletter',
         html: buildNewsletterWelcomeTemplate({ email: subscriber.email }),
       });
     } catch (error) {
-      console.error("Failed to enqueue newsletter welcome email", error);
+      console.error('Failed to enqueue newsletter welcome email', error);
     }
 
     return { data: subscriber, alreadySubscribed: false };
@@ -51,7 +54,7 @@ export class NewsletterService {
 
   async list(query: { page?: unknown; limit?: unknown; status?: unknown }) {
     const { page, limit, skip } = parsePagination(query.page, query.limit, 20);
-    const status = typeof query.status === "string" ? query.status : undefined;
+    const status = typeof query.status === 'string' ? query.status : undefined;
     const [data, total] = await this.repository.list(skip, limit, status);
     return { data, pagination: buildPaginationMeta(total, page, limit) };
   }
@@ -76,9 +79,9 @@ export class NewsletterService {
 
   private async getRegisteredUserEmails(): Promise<string[]> {
     const rows = await this.userRepo
-      .createQueryBuilder("user")
-      .select("user.email", "email")
-      .where("user.email IS NOT NULL")
+      .createQueryBuilder('user')
+      .select('user.email', 'email')
+      .where('user.email IS NOT NULL')
       .andWhere("TRIM(user.email) <> ''")
       .getRawMany<{ email: string }>();
 

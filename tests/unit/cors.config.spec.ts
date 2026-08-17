@@ -18,7 +18,8 @@ describe('cors configuration', () => {
     process.env.NODE_ENV = 'production';
 
     jest.isolateModules(() => {
-      const { isAllowedOrigin, resolvedCorsOrigins } = require('../../src/configs/cors.config') as typeof import('../../src/configs/cors.config');
+      const { isAllowedOrigin, resolvedCorsOrigins } =
+        require('../../src/configs/cors.config') as typeof import('../../src/configs/cors.config');
 
       expect(resolvedCorsOrigins).toContain('https://bitebrewdashboard.netlify.app');
       expect(isAllowedOrigin('https://bitebrewdashboard.netlify.app')).toBe(true);
@@ -30,7 +31,8 @@ describe('cors configuration', () => {
     process.env.NODE_ENV = 'production';
 
     jest.isolateModules(() => {
-      const { isAllowedOrigin } = require('../../src/configs/cors.config') as typeof import('../../src/configs/cors.config');
+      const { isAllowedOrigin } =
+        require('../../src/configs/cors.config') as typeof import('../../src/configs/cors.config');
 
       expect(isAllowedOrigin('http://localhost:3000')).toBe(false);
     });
@@ -40,11 +42,14 @@ describe('cors configuration', () => {
     process.env.NODE_ENV = 'production';
 
     jest.isolateModules(() => {
-      const { socketOptions } = require('../../src/configs/socket.config') as typeof import('../../src/configs/socket.config');
+      const { socketOptions } =
+        require('../../src/configs/socket.config') as typeof import('../../src/configs/socket.config');
       let allowed = false;
 
       socketOptions.allowRequest?.(
-        { headers: { origin: 'https://bitebrewdashboard.netlify.app' } } as Parameters<NonNullable<typeof socketOptions.allowRequest>>[0],
+        { headers: { origin: 'https://bitebrewdashboard.netlify.app' } } as Parameters<
+          NonNullable<typeof socketOptions.allowRequest>
+        >[0],
         (_error, success) => {
           allowed = success;
         },

@@ -8,20 +8,20 @@ type ResetPasswordTemplateInput = {
 
 const escapeHtml = (value: string): string =>
   value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 export const buildResetPasswordTemplate = ({
   name,
   resetUrl,
-  appName = "Bite Brew Cafe",
-  supportEmail = "support@bitebrew.local",
+  appName = 'Bite Brew Cafe',
+  supportEmail = 'support@bitebrew.local',
   expiresInMinutes = 60,
 }: ResetPasswordTemplateInput): string => {
-  const safeName = escapeHtml(name || "User");
+  const safeName = escapeHtml(name || 'User');
   const safeAppName = escapeHtml(appName);
   const safeSupportEmail = escapeHtml(supportEmail);
   const safeResetUrl = escapeHtml(resetUrl);
@@ -84,19 +84,18 @@ export const buildResetPasswordTemplate = ({
 export const buildResetPasswordTextTemplate = ({
   name,
   resetUrl,
-  appName = "Bite Brew Cafe",
-  supportEmail = "support@bitebrew.local",
+  appName = 'Bite Brew Cafe',
+  supportEmail = 'support@bitebrew.local',
   expiresInMinutes = 60,
 }: ResetPasswordTemplateInput): string => {
   return [
-    `Hello ${name || "User"},`,
-    "",
+    `Hello ${name || 'User'},`,
+    '',
     `We received a password reset request for your ${appName} account.`,
     `Use the link below to reset your password (valid for ${expiresInMinutes} minutes):`,
     resetUrl,
-    "",
-    "If you did not request this, you can ignore this email.",
+    '',
+    'If you did not request this, you can ignore this email.',
     `Support: ${supportEmail}`,
-  ].join("\n");
+  ].join('\n');
 };
-

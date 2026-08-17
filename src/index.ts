@@ -12,7 +12,11 @@ import { emailWorker } from './queue/email.worker';
 
 initObservability();
 
-logger.info('instance.start', { instance: getInstanceId(), node: process.version, pid: process.pid });
+logger.info('instance.start', {
+  instance: getInstanceId(),
+  node: process.version,
+  pid: process.pid,
+});
 
 const { server } = createApp();
 
@@ -183,7 +187,7 @@ const bootstrap = async (): Promise<void> => {
 
     // Register cleanup handlers to run during graceful shutdown.
     // Order matters: workers first, then Redis, then database pool last.
-if (envConfig.ENABLE_WORKERS && emailWorker !== null) {
+    if (envConfig.ENABLE_WORKERS && emailWorker !== null) {
       const worker = emailWorker;
       onShutdown(async () => {
         logger.info('shutdown.worker.stopping', { worker: 'email' });
@@ -223,7 +227,6 @@ if (envConfig.ENABLE_WORKERS && emailWorker !== null) {
     process.on('unhandledRejection', (reason: unknown) => {
       logger.error('error.unhandledRejection', { reason: String(reason) });
     });
-
   } catch (err: unknown) {
     logger.error('error.bootstrap', { error: String(err) });
     process.exit(1);

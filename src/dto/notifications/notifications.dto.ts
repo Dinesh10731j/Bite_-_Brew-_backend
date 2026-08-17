@@ -1,5 +1,5 @@
-import { IsEnum, IsOptional, IsString } from "class-validator";
-import { NotificationPriority, NotificationType } from "../../constant/enum.constant";
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { NotificationPriority, NotificationType } from '../../constant/enum.constant';
 
 export class CreateNotificationDTO {
   @IsString()

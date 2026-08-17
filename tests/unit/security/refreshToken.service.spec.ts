@@ -1,6 +1,6 @@
-import { RefreshTokenService } from "../../../src/service/security/refreshToken.service";
+import { RefreshTokenService } from '../../../src/service/security/refreshToken.service';
 
-jest.mock("../../../src/configs/redis.config", () => ({
+jest.mock('../../../src/configs/redis.config', () => ({
   securityRedis: {
     get: jest.fn().mockResolvedValue(null),
     set: jest.fn().mockResolvedValue(undefined),
@@ -9,7 +9,7 @@ jest.mock("../../../src/configs/redis.config", () => ({
   },
 }));
 
-jest.mock("../../../src/configs/psqlDb.config", () => ({
+jest.mock('../../../src/configs/psqlDb.config', () => ({
   AppDataSource: {
     getRepository: () => ({
       create: jest.fn().mockReturnValue({}),
@@ -22,18 +22,18 @@ jest.mock("../../../src/configs/psqlDb.config", () => ({
   },
 }));
 
-jest.mock("../../../src/configs/env.config", () => ({
+jest.mock('../../../src/configs/env.config', () => ({
   envConfig: {
-    JWT_REFRESH_EXPIRES_IN: "30d",
+    JWT_REFRESH_EXPIRES_IN: '30d',
   },
 }));
 
-describe("RefreshTokenService", () => {
+describe('RefreshTokenService', () => {
   const service = new RefreshTokenService();
 
-  describe("createRefreshToken", () => {
-    it("creates a refresh token bound to a user and session", async () => {
-      const result = await service.createRefreshToken("user-1", "session-1");
+  describe('createRefreshToken', () => {
+    it('creates a refresh token bound to a user and session', async () => {
+      const result = await service.createRefreshToken('user-1', 'session-1');
       expect(result.token).toBeTruthy();
       expect(result.tokenId).toBeTruthy();
       expect(result.tokenHash).toMatch(/^[a-f0-9]{64}$/);
@@ -41,10 +41,10 @@ describe("RefreshTokenService", () => {
     });
   });
 
-  describe("verifyAndRotate", () => {
-    it("throws for an invalid refresh token", async () => {
-      await expect(service.verifyAndRotate("not-a-real-token")).rejects.toThrow(
-        "INVALID_REFRESH_TOKEN",
+  describe('verifyAndRotate', () => {
+    it('throws for an invalid refresh token', async () => {
+      await expect(service.verifyAndRotate('not-a-real-token')).rejects.toThrow(
+        'INVALID_REFRESH_TOKEN',
       );
     });
   });

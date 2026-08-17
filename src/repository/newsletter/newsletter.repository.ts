@@ -1,5 +1,5 @@
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { NewsletterSubscriber } from "../../entities/newsletter/newsletter.entity";
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { NewsletterSubscriber } from '../../entities/newsletter/newsletter.entity';
 
 export class NewsletterRepository {
   private readonly repo = AppDataSource.getRepository(NewsletterSubscriber);
@@ -9,23 +9,23 @@ export class NewsletterRepository {
   }
 
   create(email: string) {
-    const entity = this.repo.create({ email: email.toLowerCase().trim(), status: "active" });
+    const entity = this.repo.create({ email: email.toLowerCase().trim(), status: 'active' });
     return this.repo.save(entity);
   }
 
   list(skip: number, take: number, status?: string) {
-    const qb = this.repo.createQueryBuilder("newsletter");
+    const qb = this.repo.createQueryBuilder('newsletter');
     if (status) {
-      qb.where("newsletter.status = :status", { status });
+      qb.where('newsletter.status = :status', { status });
     }
-    return qb.orderBy("newsletter.subscribedAt", "DESC").skip(skip).take(take).getManyAndCount();
+    return qb.orderBy('newsletter.subscribedAt', 'DESC').skip(skip).take(take).getManyAndCount();
   }
 
   async listActiveEmails(): Promise<string[]> {
     const rows = await this.repo
-      .createQueryBuilder("newsletter")
-      .select("newsletter.email", "email")
-      .where("newsletter.status = :status", { status: "active" })
+      .createQueryBuilder('newsletter')
+      .select('newsletter.email', 'email')
+      .where('newsletter.status = :status', { status: 'active' })
       .getRawMany<{ email: string }>();
 
     return rows.map((row) => row.email);

@@ -1,17 +1,16 @@
-import { Router } from "express";
-import { LoyaltyController } from "../../controller/loyalty/loyalty.controller";
-import { jwtVerify } from "../../middleware/auth.middleware";
-import { requestValidation } from "../../middleware/requestValidation.middleware";
-import { roleCheck } from "../../middleware/roleCheck.middleware";
+import { Router } from 'express';
+import { LoyaltyController } from '../../controller/loyalty/loyalty.controller';
+import { jwtVerify } from '../../middleware/auth.middleware';
+import { requestValidation } from '../../middleware/requestValidation.middleware';
+import { roleCheck } from '../../middleware/roleCheck.middleware';
 
 import {
   RedeemRewardDto,
   ClaimReferralDto,
   ManualPointsAdjustmentDto,
   CreateRewardCatalogItemDto,
-  CreateLoyaltyAccountDto
-} from "../../dto/loyalty/loyalty.dto";
-
+  CreateLoyaltyAccountDto,
+} from '../../dto/loyalty/loyalty.dto';
 
 const router = Router();
 
@@ -26,12 +25,11 @@ const router = Router();
  * @base    Mapped under /loyalty -> Full URL: /api/v1/bite-brew/loyalty/accounts
  */
 router.post(
-  "/accounts",
+  '/accounts',
   jwtVerify,
   requestValidation(CreateLoyaltyAccountDto),
-  LoyaltyController.createAccount
+  LoyaltyController.createAccount,
 );
-
 
 // ==========================================
 // CUSTOMER REWARDS ROUTING
@@ -42,22 +40,11 @@ router.post(
  * @desc    Get the logged-in customer's loyalty profile snapshot & current daily streak
  * @access  Private (Customer)
  */
-router.get(
-  "/dashboard",
-  jwtVerify,
-  LoyaltyController.getDashboard
-);
+router.get('/dashboard', jwtVerify, LoyaltyController.getDashboard);
 
-router.get(
-  "/catalog",
-  LoyaltyController.getRewardCatalog
-);
+router.get('/catalog', LoyaltyController.getRewardCatalog);
 
-router.get(
-  "/wallet",
-  jwtVerify,
-  LoyaltyController.getWallet
-);
+router.get('/wallet', jwtVerify, LoyaltyController.getWallet);
 
 /**
  * @route   POST /redeem
@@ -65,10 +52,10 @@ router.get(
  * @access  Private (Customer)
  */
 router.post(
-  "/redeem",
+  '/redeem',
   jwtVerify,
   requestValidation(RedeemRewardDto),
-  LoyaltyController.redeemReward
+  LoyaltyController.redeemReward,
 );
 
 /**
@@ -76,11 +63,7 @@ router.post(
  * @desc    Process customer daily check-in to build streaks and earn points
  * @access  Private (Customer)
  */
-router.post(
-  "/check-in",
-  jwtVerify,
-  LoyaltyController.dailyCheckIn
-);
+router.post('/check-in', jwtVerify, LoyaltyController.dailyCheckIn);
 
 /**
  * @route   POST /referral/claim
@@ -88,10 +71,10 @@ router.post(
  * @access  Private (Customer)
  */
 router.post(
-  "/referral/claim",
+  '/referral/claim',
   jwtVerify,
   requestValidation(ClaimReferralDto),
-  LoyaltyController.claimReferral
+  LoyaltyController.claimReferral,
 );
 
 /**
@@ -99,12 +82,7 @@ router.post(
  * @desc    Fetch lists of point actions (EARNING, REDEMPTION, EXPIRATION) with query filters
  * @access  Private (Customer)
  */
-router.get(
-  "/history",
-  jwtVerify,
-  LoyaltyController.getPointsHistory
-);
-
+router.get('/history', jwtVerify, LoyaltyController.getPointsHistory);
 
 // ==========================================
 // ADMINISTRATIVE ROUTING
@@ -116,10 +94,10 @@ router.get(
  * @access  Private (Admin)
  */
 router.patch(
-  "/admin/config",
+  '/admin/config',
   jwtVerify,
-  (req, res, next) => roleCheck(["admin"])(req, res, next),
-  LoyaltyController.updateConfig
+  (req, res, next) => roleCheck(['admin'])(req, res, next),
+  LoyaltyController.updateConfig,
 );
 
 /**
@@ -128,11 +106,11 @@ router.patch(
  * @access  Private (Admin)
  */
 router.post(
-  "/admin/adjust-points",
+  '/admin/adjust-points',
   jwtVerify,
-  (req, res, next) => roleCheck(["admin"])(req, res, next),
+  (req, res, next) => roleCheck(['admin'])(req, res, next),
   requestValidation(ManualPointsAdjustmentDto),
-  LoyaltyController.adjustPoints
+  LoyaltyController.adjustPoints,
 );
 
 /**
@@ -141,11 +119,11 @@ router.post(
  * @access  Private (Admin)
  */
 router.post(
-  "/admin/catalog",
+  '/admin/catalog',
   jwtVerify,
-  (req, res, next) => roleCheck(["admin"])(req, res, next),
+  (req, res, next) => roleCheck(['admin'])(req, res, next),
   requestValidation(CreateRewardCatalogItemDto),
-  LoyaltyController.createRewardCatalogItem
+  LoyaltyController.createRewardCatalogItem,
 );
 
 /**
@@ -154,10 +132,10 @@ router.post(
  * @access  Private (Admin)
  */
 router.get(
-  "/admin/analytics",
+  '/admin/analytics',
   jwtVerify,
-  (req, res, next) => roleCheck(["admin"])(req, res, next),
-  LoyaltyController.getLoyaltyAnalytics
+  (req, res, next) => roleCheck(['admin'])(req, res, next),
+  LoyaltyController.getLoyaltyAnalytics,
 );
 
 export default router;

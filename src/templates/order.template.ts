@@ -1,6 +1,6 @@
-import { PaymentMethod } from "../constant/enum.constant";
+import { PaymentMethod } from '../constant/enum.constant';
 
-type SupportedOrderType = "DINE_IN" | "TAKEAWAY" | "DELIVERY";
+type SupportedOrderType = 'DINE_IN' | 'TAKEAWAY' | 'DELIVERY';
 
 export type OrderConfirmationTemplateInput = {
   customerName: string;
@@ -13,24 +13,24 @@ export type OrderConfirmationTemplateInput = {
   deliveryAddress?: string;
 };
 
-const BRAND_NAME = "Bite Brew Cafe";
+const BRAND_NAME = 'Bite Brew Cafe';
 
 const escapeHtml = (value: string): string =>
   value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 const formatOrderType = (orderType: SupportedOrderType): string => {
   switch (orderType) {
-    case "DINE_IN":
-      return "Dine In";
-    case "TAKEAWAY":
-      return "Takeaway";
-    case "DELIVERY":
-      return "Delivery";
+    case 'DINE_IN':
+      return 'Dine In';
+    case 'TAKEAWAY':
+      return 'Takeaway';
+    case 'DELIVERY':
+      return 'Delivery';
     default:
       return orderType;
   }
@@ -39,11 +39,11 @@ const formatOrderType = (orderType: SupportedOrderType): string => {
 const formatPaymentMethod = (value: PaymentMethod): string => {
   switch (value) {
     case PaymentMethod.CARD:
-      return "Card";
+      return 'Card';
     case PaymentMethod.UPI:
-      return "UPI";
+      return 'UPI';
     default:
-      return "Cash";
+      return 'Cash';
   }
 };
 
@@ -51,36 +51,36 @@ const formatCurrency = (amount: number): string => `Rs ${amount.toFixed(2)}`;
 
 const getEmotionLine = (orderType: SupportedOrderType): string => {
   switch (orderType) {
-    case "DINE_IN":
-      return "Your table experience is being prepared with care and attention.";
-    case "TAKEAWAY":
-      return "Your pickup order is locked in, and we are already moving on it.";
-    case "DELIVERY":
-      return "Your delivery order is confirmed, and we will bring comfort right to your door.";
+    case 'DINE_IN':
+      return 'Your table experience is being prepared with care and attention.';
+    case 'TAKEAWAY':
+      return 'Your pickup order is locked in, and we are already moving on it.';
+    case 'DELIVERY':
+      return 'Your delivery order is confirmed, and we will bring comfort right to your door.';
     default:
-      return "Your order is confirmed and in trusted hands.";
+      return 'Your order is confirmed and in trusted hands.';
   }
 };
 
 const getNextStepLine = (input: OrderConfirmationTemplateInput): string => {
   switch (input.orderType) {
-    case "DINE_IN":
+    case 'DINE_IN':
       return input.tableNumber
         ? `Table ${escapeHtml(input.tableNumber)} is noted for your service.`
-        : "Our team will guide your table service smoothly.";
-    case "TAKEAWAY":
-      return "Keep this order ID ready at pickup for a faster handoff.";
-    case "DELIVERY":
+        : 'Our team will guide your table service smoothly.';
+    case 'TAKEAWAY':
+      return 'Keep this order ID ready at pickup for a faster handoff.';
+    case 'DELIVERY':
       return input.deliveryAddress
         ? `Delivery location: ${escapeHtml(input.deliveryAddress)}`
-        : "Our rider will deliver to your shared address.";
+        : 'Our rider will deliver to your shared address.';
     default:
-      return "";
+      return '';
   }
 };
 
 export const buildOrderConfirmationTemplate = (input: OrderConfirmationTemplateInput): string => {
-  const customerName = escapeHtml(input.customerName || "Customer");
+  const customerName = escapeHtml(input.customerName || 'Customer');
   const orderId = escapeHtml(input.orderId);
   const orderType = formatOrderType(input.orderType);
   const paymentMethod = formatPaymentMethod(input.paymentMethod);
@@ -149,4 +149,3 @@ export const buildOrderConfirmationTemplate = (input: OrderConfirmationTemplateI
 </html>
 `;
 };
-

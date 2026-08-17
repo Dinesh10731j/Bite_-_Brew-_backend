@@ -1,37 +1,30 @@
-import { 
-  IsNotEmpty, 
-  IsString, 
-  IsUUID, 
-  IsNumber, 
-  Min, 
-  IsIn, 
-  IsOptional, 
-  IsBoolean, 
-  IsInt, 
+import {
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  IsNumber,
+  Min,
+  IsIn,
+  IsOptional,
+  IsBoolean,
+  IsInt,
   IsObject,
-  Length
-} from "class-validator";
-
-
+  Length,
+} from 'class-validator';
 
 export class CreateLoyaltyAccountDto {
   @IsOptional()
-  @IsString({ message: "Referral code must be a string" })
-  @Length(3, 20, { message: "Referral code must be between 3 and 20 characters long" })
+  @IsString({ message: 'Referral code must be a string' })
+  @Length(3, 20, { message: 'Referral code must be between 3 and 20 characters long' })
   referralCode?: string;
 }
-
 
 // Backward-compatible alias (some routes/tests may import the old casing/name)
 export { CreateLoyaltyAccountDto as createAccountDto };
 
-
-
-
-
 export class RedeemRewardDto {
   @IsNotEmpty()
-  @IsUUID("4")
+  @IsUUID('4')
   rewardId!: string;
 }
 
@@ -43,7 +36,7 @@ export class ClaimReferralDto {
 
 export class ManualPointsAdjustmentDto {
   @IsNotEmpty()
-  @IsUUID("4")
+  @IsUUID('4')
   customerId!: string;
 
   @IsNotEmpty()
@@ -52,8 +45,8 @@ export class ManualPointsAdjustmentDto {
   amount!: number;
 
   @IsNotEmpty()
-  @IsIn(["GRANT", "DEDUCT"])
-  type!: "GRANT" | "DEDUCT";
+  @IsIn(['GRANT', 'DEDUCT'])
+  type!: 'GRANT' | 'DEDUCT';
 
   @IsOptional()
   @IsString()
@@ -66,8 +59,8 @@ export class CreateRewardCatalogItemDto {
   title!: string;
 
   @IsOptional()
-  @IsIn(["FREE_COFFEE", "FREE_CAKE", "PERCENTAGE_DISCOUNT", "FIXED_DISCOUNT", "FREE_DELIVERY"])
-  type?: "FREE_COFFEE" | "FREE_CAKE" | "PERCENTAGE_DISCOUNT" | "FIXED_DISCOUNT" | "FREE_DELIVERY";
+  @IsIn(['FREE_COFFEE', 'FREE_CAKE', 'PERCENTAGE_DISCOUNT', 'FIXED_DISCOUNT', 'FREE_DELIVERY'])
+  type?: 'FREE_COFFEE' | 'FREE_CAKE' | 'PERCENTAGE_DISCOUNT' | 'FIXED_DISCOUNT' | 'FREE_DELIVERY';
 
   @IsNotEmpty()
   @IsInt()

@@ -17,7 +17,10 @@ describe('health endpoints', () => {
   });
 
   it('serves kube probe endpoints', async () => {
-    const [livez, readyz] = await Promise.all([request(app).get('/livez'), request(app).get('/readyz')]);
+    const [livez, readyz] = await Promise.all([
+      request(app).get('/livez'),
+      request(app).get('/readyz'),
+    ]);
     expect(livez.status).toBe(200);
     expect(readyz.status).toBe(200);
   });

@@ -1,5 +1,5 @@
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { Notification } from "../../entities/notifications/notifications.entity";
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { Notification } from '../../entities/notifications/notifications.entity';
 
 export class NotificationRepository {
   private readonly repo = AppDataSource.getRepository(Notification);
@@ -10,14 +10,14 @@ export class NotificationRepository {
   }
 
   list(skip: number, take: number, userId?: string, isRead?: boolean) {
-    const qb = this.repo.createQueryBuilder("notification");
+    const qb = this.repo.createQueryBuilder('notification');
     if (userId) {
-      qb.andWhere("notification.userId = :userId", { userId });
+      qb.andWhere('notification.userId = :userId', { userId });
     }
     if (isRead !== undefined) {
-      qb.andWhere("notification.isRead = :isRead", { isRead });
+      qb.andWhere('notification.isRead = :isRead', { isRead });
     }
-    return qb.orderBy("notification.createdAt", "DESC").skip(skip).take(take).getManyAndCount();
+    return qb.orderBy('notification.createdAt', 'DESC').skip(skip).take(take).getManyAndCount();
   }
 
   findById(id: string) {
@@ -29,7 +29,12 @@ export class NotificationRepository {
   }
 
   markAllReadByUser(userId: string) {
-    return this.repo.createQueryBuilder().update(Notification).set({ isRead: true }).where("userId = :userId", { userId }).execute();
+    return this.repo
+      .createQueryBuilder()
+      .update(Notification)
+      .set({ isRead: true })
+      .where('userId = :userId', { userId })
+      .execute();
   }
 
   delete(id: string) {

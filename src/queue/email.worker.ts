@@ -13,9 +13,12 @@ import type { EmailQueuePayload } from './email.queue';
  * worker lifecycle predictable.)
  */
 export const emailWorker = envConfig.ENABLE_WORKERS
-  ? new Worker('email', async (job) => {
-      const { to, subject, html } = job.data as EmailQueuePayload;
-      await sendSmtpMail({ to, subject, html });
-    }, workerOptions)
+  ? new Worker(
+      'email',
+      async (job) => {
+        const { to, subject, html } = job.data as EmailQueuePayload;
+        await sendSmtpMail({ to, subject, html });
+      },
+      workerOptions,
+    )
   : null;
-

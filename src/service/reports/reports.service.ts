@@ -1,4 +1,4 @@
-import { ReportsRepository } from "../../repository/reports/reports.repository";
+import { ReportsRepository } from '../../repository/reports/reports.repository';
 
 export class ReportsService {
   constructor(private readonly repository: ReportsRepository) {}
@@ -18,7 +18,7 @@ export class ReportsService {
         acc.sales += Number(day.sales);
         return acc;
       },
-      { orders: 0, sales: 0 }
+      { orders: 0, sales: 0 },
     );
 
     return {

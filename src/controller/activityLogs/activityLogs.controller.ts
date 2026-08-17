@@ -1,15 +1,15 @@
-import { Request, Response } from "express";
-import { UserRole } from "../../constant/enum.constant";
-import { Message } from "../../constant/message.interface";
-import { HTTP_STATUS } from "../../constant/statusCode.interface";
-import { ActivityLogsRepository } from "../../repository/activityLogs/activityLogs.repository";
-import { ActivityLogsService } from "../../service/activityLogs/activityLogs.service";
+import { Request, Response } from 'express';
+import { UserRole } from '../../constant/enum.constant';
+import { Message } from '../../constant/message.interface';
+import { HTTP_STATUS } from '../../constant/statusCode.interface';
+import { ActivityLogsRepository } from '../../repository/activityLogs/activityLogs.repository';
+import { ActivityLogsService } from '../../service/activityLogs/activityLogs.service';
 
 const activityLogsService = new ActivityLogsService(new ActivityLogsRepository());
 
 type ActivityLogResponse = {
   id: string;
-  type: "visit" | "order" | "admin_action";
+  type: 'visit' | 'order' | 'admin_action';
   userId?: string;
   userName?: string;
   action?: string;
@@ -40,7 +40,9 @@ export class ActivityLogsController {
       });
       return res.status(HTTP_STATUS.OK).json({ message: Message.SUCCESS, ...result });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: Message.INTERNAL_SERVER_ERROR });
     }
   }
 }

@@ -1,5 +1,5 @@
-import { JobsOptions } from "bullmq";
-import { createQueue } from "../queues/bullmq.config";
+import { JobsOptions } from 'bullmq';
+import { createQueue } from '../queues/bullmq.config';
 
 export type EmailQueuePayload = {
   to: string;
@@ -7,19 +7,19 @@ export type EmailQueuePayload = {
   html: string;
 };
 
-const isTest = process.env.NODE_ENV === "test";
-const emailQueue = isTest ? null : createQueue("email");
+const isTest = process.env.NODE_ENV === 'test';
+const emailQueue = isTest ? null : createQueue('email');
 
 const emailJobOptions: JobsOptions = {
   attempts: 3,
-  backoff: { type: "exponential", delay: 5000 },
+  backoff: { type: 'exponential', delay: 5000 },
   removeOnComplete: 100,
   removeOnFail: 200,
 };
 
 export const enqueueEmail = async (payload: EmailQueuePayload): Promise<void> => {
   if (!emailQueue) return;
-  await emailQueue.add("send-email", payload, emailJobOptions);
+  await emailQueue.add('send-email', payload, emailJobOptions);
 };
 
 export const enqueueBulkEmail = async (payloads: EmailQueuePayload[]): Promise<void> => {
@@ -33,7 +33,7 @@ export const enqueueBulkEmail = async (payloads: EmailQueuePayload[]): Promise<v
     const chunk = payloads.slice(index, index + chunkSize);
     await emailQueue.addBulk(
       chunk.map((payload) => ({
-        name: "send-email",
+        name: 'send-email',
         data: payload,
         opts: emailJobOptions,
       })),

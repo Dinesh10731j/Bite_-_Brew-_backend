@@ -1,11 +1,11 @@
-import { OrderStatus, OrderPriority, PaymentMethod } from "../../constant/enum.constant";
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { MenuItem } from "../../entities/menu/menu.entity";
-import { OrdersRepository } from "../../repository/orders/orders.repository";
-import { LoyaltyRepository } from "../../repository/loyalty/loyalty.repository";
-import { LoyaltyService } from "../loyalty/loyalty.service";
-import { buildPaginationMeta, parsePagination } from "../../utils/helpers/pagination_helper";
-import { In } from "typeorm";
+import { OrderStatus, OrderPriority, PaymentMethod } from '../../constant/enum.constant';
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { MenuItem } from '../../entities/menu/menu.entity';
+import { OrdersRepository } from '../../repository/orders/orders.repository';
+import { LoyaltyRepository } from '../../repository/loyalty/loyalty.repository';
+import { LoyaltyService } from '../loyalty/loyalty.service';
+import { buildPaginationMeta, parsePagination } from '../../utils/helpers/pagination_helper';
+import { In } from 'typeorm';
 
 interface CreateOrderItemInput {
   menuItemId?: string;
@@ -29,31 +29,31 @@ interface CreateOrderInput {
 }
 
 type CreateOrderResult =
-  | { order: Awaited<ReturnType<OrdersRepository["createOrder"]>> }
-  | { error: "INVALID_MENU_ITEMS"; missing: string[]; suggestions: Record<string, string[]> }
-  | { error: "INVALID_ITEMS" };
+  | { order: Awaited<ReturnType<OrdersRepository['createOrder']>> }
+  | { error: 'INVALID_MENU_ITEMS'; missing: string[]; suggestions: Record<string, string[]> }
+  | { error: 'INVALID_ITEMS' };
 
 export class OrderService {
   constructor(
     private readonly ordersRepository: OrdersRepository,
-    private readonly loyaltyService = new LoyaltyService(new LoyaltyRepository())
+    private readonly loyaltyService = new LoyaltyService(new LoyaltyRepository()),
   ) {}
 
   async createOrder(payload: CreateOrderInput, userId?: string): Promise<CreateOrderResult> {
     const isUuid = (value: string) =>
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-    const normalizeName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normalizeName = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
     const getItemRef = (item: CreateOrderItemInput) => {
       const candidates = [item.menuItemId, item.id, item.itemId, item.name];
       for (const candidate of candidates) {
-        if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+        if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
       }
-      return "";
+      return '';
     };
     const getQuantity = (item: CreateOrderItemInput) => Number(item.quantity ?? item.qty);
 
     if (!Array.isArray(payload.items) || payload.items.length === 0) {
-      return { error: "INVALID_ITEMS" };
+      return { error: 'INVALID_ITEMS' };
     }
 
     const menuRepo = AppDataSource.getRepository(MenuItem);
@@ -62,8 +62,12 @@ export class OrderService {
       quantity: getQuantity(item),
     }));
 
-    if (normalizedItems.some((item) => !item.ref || !Number.isFinite(item.quantity) || item.quantity <= 0)) {
-      return { error: "INVALID_ITEMS" };
+    if (
+      normalizedItems.some(
+        (item) => !item.ref || !Number.isFinite(item.quantity) || item.quantity <= 0,
+      )
+    ) {
+      return { error: 'INVALID_ITEMS' };
     }
 
     const idRefs = normalizedItems.filter((item) => isUuid(item.ref)).map((item) => item.ref);
@@ -74,8 +78,8 @@ export class OrderService {
     const byId = idRefs.length ? await menuRepo.findBy({ id: In(idRefs) }) : [];
     const byName = nameRefs.length
       ? await menuRepo
-          .createQueryBuilder("menu")
-          .where("LOWER(menu.name) IN (:...names)", { names: nameRefs })
+          .createQueryBuilder('menu')
+          .where('LOWER(menu.name) IN (:...names)', { names: nameRefs })
           .getMany()
       : [];
     const allMenuItems = nameRefs.length ? await menuRepo.find() : [];
@@ -88,9 +92,13 @@ export class OrderService {
 
     const menuById = new Map(byId.map((item) => [item.id, item]));
     const menuByName = new Map(byName.map((item) => [item.name.toLowerCase(), item]));
-    const menuByNormalizedName = new Map(allMenuItems.map((item) => [normalizeName(item.name), item]));
+    const menuByNormalizedName = new Map(
+      allMenuItems.map((item) => [normalizeName(item.name), item]),
+    );
     const menuByGeneratedCode: Map<string, MenuItem> = new Map(
-      sortedMenus.map((item, index) => [`item_${String(index + 1).padStart(3, "0")}`, item] as const)
+      sortedMenus.map(
+        (item, index) => [`item_${String(index + 1).padStart(3, '0')}`, item] as const,
+      ),
     );
 
     let totalPrice = 0;
@@ -112,7 +120,10 @@ export class OrderService {
             const normalizedRef = normalizeName(item.ref);
             const fuzzy = allMenuItems.filter((m) => {
               const normalizedMenuName = normalizeName(m.name);
-              return normalizedMenuName.includes(normalizedRef) || normalizedRef.includes(normalizedMenuName);
+              return (
+                normalizedMenuName.includes(normalizedRef) ||
+                normalizedRef.includes(normalizedMenuName)
+              );
             });
             if (fuzzy.length === 1) {
               return fuzzy[0];
@@ -121,7 +132,9 @@ export class OrderService {
               suggestions[item.ref] = fuzzy.slice(0, 5).map((m) => m.name);
             }
             if (fuzzy.length === 0 && /^item_\d+$/i.test(item.ref)) {
-              suggestions[item.ref] = sortedMenus.slice(0, 5).map((m, idx) => `item_${String(idx + 1).padStart(3, "0")} (${m.name})`);
+              suggestions[item.ref] = sortedMenus
+                .slice(0, 5)
+                .map((m, idx) => `item_${String(idx + 1).padStart(3, '0')} (${m.name})`);
             }
             return undefined;
           })();
@@ -138,7 +151,7 @@ export class OrderService {
       });
     }
     if (missing.length > 0) {
-      return { error: "INVALID_MENU_ITEMS", missing, suggestions };
+      return { error: 'INVALID_MENU_ITEMS', missing, suggestions };
     }
 
     const orderPayload: {
@@ -155,13 +168,13 @@ export class OrderService {
       deliveryAddress?: string;
     } = {
       customerName: payload.customerName,
-      orderType: payload.orderType ?? "DINE_IN",
+      orderType: payload.orderType ?? 'DINE_IN',
       priority: OrderPriority.MEDIUM,
       paymentMethod: payload.paymentMethod ?? PaymentMethod.CASH,
       totalPrice: Number(totalPrice.toFixed(2)),
       status: OrderStatus.PENDING,
     };
-    if (typeof payload.priority === "string") {
+    if (typeof payload.priority === 'string') {
       const proposedPriority = payload.priority.toUpperCase();
       if (Object.values(OrderPriority).includes(proposedPriority as OrderPriority)) {
         orderPayload.priority = proposedPriority as OrderPriority;
@@ -180,8 +193,8 @@ export class OrderService {
   async listOrders(query: { page?: unknown; limit?: unknown; status?: unknown; search?: unknown }) {
     const { page, limit, skip } = parsePagination(query.page, query.limit, 10);
     const filters: { status?: OrderStatus; search?: string } = {};
-    if (typeof query.status === "string") filters.status = query.status as OrderStatus;
-    if (typeof query.search === "string") filters.search = query.search;
+    if (typeof query.status === 'string') filters.status = query.status as OrderStatus;
+    if (typeof query.search === 'string') filters.search = query.search;
     const [data, total] = await this.ordersRepository.listOrders(skip, limit, filters);
     return { data, pagination: buildPaginationMeta(total, page, limit) };
   }

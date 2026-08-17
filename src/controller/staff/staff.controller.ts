@@ -1,11 +1,11 @@
-import { Request, Response } from "express";
-import { plainToInstance } from "class-transformer";
-import { validate } from "class-validator";
-import { StaffService } from "../../service/staff/staff.service";
-import { UploadService } from "../../service/upload/upload.service";
-import { CreateStaffDTO, UpdateStaffDTO } from "../../dto/staff/staff.dto";
-import { HTTP_STATUS } from "../../constant/statusCode.interface";
-import { MESSAGES } from "../../constant/message.interface";
+import { Request, Response } from 'express';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { StaffService } from '../../service/staff/staff.service';
+import { UploadService } from '../../service/upload/upload.service';
+import { CreateStaffDTO, UpdateStaffDTO } from '../../dto/staff/staff.dto';
+import { HTTP_STATUS } from '../../constant/statusCode.interface';
+import { MESSAGES } from '../../constant/message.interface';
 
 const staffService = new StaffService();
 const uploadService = new UploadService();
@@ -16,8 +16,10 @@ export class StaffController {
       const result = await staffService.listStaff(req.query);
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.SUCCESS, ...result });
     } catch (error) {
-      console.error("Staff list failed:", error);
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      console.error('Staff list failed:', error);
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -29,13 +31,13 @@ export class StaffController {
         return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
       }
 
-      let image = typeof dto.image === "string" ? dto.image.trim() : undefined;
-      const requestPhoto = typeof req.body?.photo === "string" ? req.body.photo.trim() : undefined;
+      let image = typeof dto.image === 'string' ? dto.image.trim() : undefined;
+      const requestPhoto = typeof req.body?.photo === 'string' ? req.body.photo.trim() : undefined;
       if (!image && requestPhoto) {
         image = requestPhoto;
       }
       if (req.file) {
-        const uploadedImage = await uploadService.uploadImage(req.file, "bite-brew/staff");
+        const uploadedImage = await uploadService.uploadImage(req.file, 'bite-brew/staff');
         image = uploadedImage.url;
       }
 
@@ -50,10 +52,14 @@ export class StaffController {
         return res.status(HTTP_STATUS.CONFLICT).json({ message: MESSAGES.USER_ALREADY_EXISTS });
       }
 
-      return res.status(HTTP_STATUS.CREATED).json({ message: MESSAGES.CREATED_SUCCESS, data: staff });
+      return res
+        .status(HTTP_STATUS.CREATED)
+        .json({ message: MESSAGES.CREATED_SUCCESS, data: staff });
     } catch (error) {
-      console.error("Staff create failed:", error);
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      console.error('Staff create failed:', error);
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -66,8 +72,10 @@ export class StaffController {
       }
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.SUCCESS, data: staff });
     } catch (error) {
-      console.error("Staff get failed:", error);
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      console.error('Staff get failed:', error);
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -80,13 +88,13 @@ export class StaffController {
         return res.status(HTTP_STATUS.BAD_REQUEST).json(errors);
       }
 
-      let image = typeof dto.image === "string" ? dto.image.trim() : undefined;
-      const requestPhoto = typeof req.body?.photo === "string" ? req.body.photo.trim() : undefined;
+      let image = typeof dto.image === 'string' ? dto.image.trim() : undefined;
+      const requestPhoto = typeof req.body?.photo === 'string' ? req.body.photo.trim() : undefined;
       if (!image && requestPhoto) {
         image = requestPhoto;
       }
       if (req.file) {
-        const uploadedImage = await uploadService.uploadImage(req.file, "bite-brew/staff");
+        const uploadedImage = await uploadService.uploadImage(req.file, 'bite-brew/staff');
         image = uploadedImage.url;
       }
 
@@ -106,8 +114,10 @@ export class StaffController {
 
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.UPDATED_SUCCESS, data: staff });
     } catch (error) {
-      console.error("Staff update failed:", error);
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      console.error('Staff update failed:', error);
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -120,8 +130,10 @@ export class StaffController {
       }
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.DELETED_SUCCESS });
     } catch (error) {
-      console.error("Staff delete failed:", error);
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      console.error('Staff delete failed:', error);
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 }

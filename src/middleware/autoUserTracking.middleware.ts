@@ -57,4 +57,3 @@ export const autoUserTracking = async (req: Request, res: Response, next: NextFu
 
   next();
 };
-

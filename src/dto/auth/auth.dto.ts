@@ -1,1 +1,1 @@
-export { SignInDTO, SignUpDTO, ForgotPasswordDTO, ResetPasswordDTO } from "../user/user.dto";
+export { SignInDTO, SignUpDTO, ForgotPasswordDTO, ResetPasswordDTO } from '../user/user.dto';

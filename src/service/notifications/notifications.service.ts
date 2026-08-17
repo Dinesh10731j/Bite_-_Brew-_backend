@@ -1,6 +1,6 @@
-import { NotificationPriority, NotificationType } from "../../constant/enum.constant";
-import { NotificationRepository } from "../../repository/notification/notification.repository";
-import { buildPaginationMeta, parsePagination } from "../../utils/helpers/pagination_helper";
+import { NotificationPriority, NotificationType } from '../../constant/enum.constant';
+import { NotificationRepository } from '../../repository/notification/notification.repository';
+import { buildPaginationMeta, parsePagination } from '../../utils/helpers/pagination_helper';
 
 export class NotificationsService {
   constructor(private readonly repository: NotificationRepository) {}
@@ -32,8 +32,8 @@ export class NotificationsService {
 
   async list(query: { page?: unknown; limit?: unknown; userId?: unknown; isRead?: unknown }) {
     const { page, limit, skip } = parsePagination(query.page, query.limit, 15);
-    const userId = typeof query.userId === "string" ? query.userId : undefined;
-    const isRead = typeof query.isRead === "string" ? query.isRead === "true" : undefined;
+    const userId = typeof query.userId === 'string' ? query.userId : undefined;
+    const isRead = typeof query.isRead === 'string' ? query.isRead === 'true' : undefined;
     const [data, total] = await this.repository.list(skip, limit, userId, isRead);
     return { data, pagination: buildPaginationMeta(total, page, limit) };
   }
@@ -47,30 +47,33 @@ export class NotificationsService {
     return this.repository.save(notification);
   }
 
-  async update(id: string, payload: {
-    content?: string;
-    type?: NotificationType;
-    priority?: NotificationPriority;
-    actionLink?: string;
-    isRead?: boolean;
-  }) {
+  async update(
+    id: string,
+    payload: {
+      content?: string;
+      type?: NotificationType;
+      priority?: NotificationPriority;
+      actionLink?: string;
+      isRead?: boolean;
+    },
+  ) {
     const notification = await this.repository.findById(id);
     if (!notification) {
       return null;
     }
-    if (typeof payload.content === "string") {
+    if (typeof payload.content === 'string') {
       notification.content = payload.content;
     }
-    if (typeof payload.type === "string") {
+    if (typeof payload.type === 'string') {
       notification.type = payload.type;
     }
-    if (typeof payload.priority === "string") {
+    if (typeof payload.priority === 'string') {
       notification.priority = payload.priority;
     }
-    if (typeof payload.actionLink === "string") {
+    if (typeof payload.actionLink === 'string') {
       notification.actionLink = payload.actionLink;
     }
-    if (typeof payload.isRead === "boolean") {
+    if (typeof payload.isRead === 'boolean') {
       notification.isRead = payload.isRead;
     }
     return this.repository.save(notification);

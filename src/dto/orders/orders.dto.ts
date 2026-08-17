@@ -1,8 +1,8 @@
-import { IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min } from "class-validator";
-import { PaymentMethod } from "../../constant/enum.constant";
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { PaymentMethod } from '../../constant/enum.constant';
 
 export class OrderItemInputDTO {
-  @IsUUID("all")
+  @IsUUID('all')
   menuItemId!: string;
 
   @IsInt()

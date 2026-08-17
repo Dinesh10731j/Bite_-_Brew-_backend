@@ -66,9 +66,7 @@ const setRateHeaders = (
   limiterRes: LimiterResponse,
   limited: boolean,
 ): void => {
-  const remaining = limited
-    ? 0
-    : Math.max(0, Math.floor(limiterRes.remainingPoints ?? maxPoints));
+  const remaining = limited ? 0 : Math.max(0, Math.floor(limiterRes.remainingPoints ?? maxPoints));
   const resetSeconds = Math.max(1, Math.ceil(limiterRes.msBeforeNext / 1000));
 
   res.setHeader('X-RateLimit-Limit', String(maxPoints));

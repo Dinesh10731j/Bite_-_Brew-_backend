@@ -23,15 +23,15 @@ export const redisService = {
   },
   async delByPrefix(prefix: string): Promise<void> {
     const pattern = `${prefix}*`;
-    let cursor = "0";
+    let cursor = '0';
 
     do {
-      const [nextCursor, keys] = await client.scan(cursor, "MATCH", pattern, "COUNT", 200);
+      const [nextCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
       cursor = nextCursor;
       if (keys.length > 0) {
         await client.del(...keys);
       }
-    } while (cursor !== "0");
+    } while (cursor !== '0');
   },
 };
 
@@ -47,7 +47,10 @@ const securityRedis = {
   /**
    * Namespaced get.
    */
-  async get(namespace: "session" | "refresh" | "device" | "login_attempt" | "registration", key: string): Promise<string | null> {
+  async get(
+    namespace: 'session' | 'refresh' | 'device' | 'login_attempt' | 'registration',
+    key: string,
+  ): Promise<string | null> {
     return client.get(`${namespace}:${key}`);
   },
 
@@ -55,7 +58,7 @@ const securityRedis = {
    * Namespaced set with TTL.
    */
   async set(
-    namespace: "session" | "refresh" | "device" | "login_attempt" | "registration",
+    namespace: 'session' | 'refresh' | 'device' | 'login_attempt' | 'registration',
     key: string,
     value: string,
     ttlSeconds: number,
@@ -66,7 +69,10 @@ const securityRedis = {
   /**
    * Namespaced delete.
    */
-  async del(namespace: "session" | "refresh" | "device" | "login_attempt" | "registration", key: string): Promise<void> {
+  async del(
+    namespace: 'session' | 'refresh' | 'device' | 'login_attempt' | 'registration',
+    key: string,
+  ): Promise<void> {
     await client.del(`${namespace}:${key}`);
   },
 
@@ -74,7 +80,11 @@ const securityRedis = {
    * Atomic counter increment with TTL on first write.
    * Returns the updated count.
    */
-  async incr(namespace: "login_attempt" | "registration", key: string, ttlSeconds: number): Promise<number> {
+  async incr(
+    namespace: 'login_attempt' | 'registration',
+    key: string,
+    ttlSeconds: number,
+  ): Promise<number> {
     const fullKey = `${namespace}:${key}`;
     const count = await client.incr(fullKey);
     if (count === 1) {
@@ -86,7 +96,7 @@ const securityRedis = {
   /**
    * Read the current counter value without incrementing.
    */
-  async getCount(namespace: "login_attempt" | "registration", key: string): Promise<number> {
+  async getCount(namespace: 'login_attempt' | 'registration', key: string): Promise<number> {
     const value = await client.get(`${namespace}:${key}`);
     return value ? parseInt(value, 10) : 0;
   },
@@ -94,7 +104,7 @@ const securityRedis = {
   /**
    * Reset a counter (used after successful login / registration).
    */
-  async reset(namespace: "login_attempt" | "registration", key: string): Promise<void> {
+  async reset(namespace: 'login_attempt' | 'registration', key: string): Promise<void> {
     await client.del(`${namespace}:${key}`);
   },
 
@@ -102,24 +112,24 @@ const securityRedis = {
    * Namespaced scan-based deletion (e.g. revoke all sessions for a user).
    * Uses pipelining for performance.
    */
-  async delByPrefix(namespace: "session" | "refresh" | "device", prefix: string): Promise<void> {
+  async delByPrefix(namespace: 'session' | 'refresh' | 'device', prefix: string): Promise<void> {
     const pattern = `${namespace}:${prefix}*`;
-    let cursor = "0";
+    let cursor = '0';
     do {
-      const [nextCursor, keys] = await client.scan(cursor, "MATCH", pattern, "COUNT", 200);
+      const [nextCursor, keys] = await client.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
       cursor = nextCursor;
       if (keys.length > 0) {
         const pipeline = client.pipeline();
         keys.forEach((k) => pipeline.del(k));
         await pipeline.exec();
       }
-    } while (cursor !== "0");
+    } while (cursor !== '0');
   },
 
   /**
    * Set a key with no expiry (opsSet variant) - used for persistence across sessions.
    */
-  async setKeep(namespace: "device", key: string, value: string): Promise<void> {
+  async setKeep(namespace: 'device', key: string, value: string): Promise<void> {
     await client.set(`${namespace}:${key}`, value);
   },
 };

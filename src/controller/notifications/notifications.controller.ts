@@ -1,9 +1,9 @@
-import { Request, Response } from "express";
-import { HTTP_STATUS } from "../../constant/statusCode.interface";
-import { Message } from "../../constant/message.interface";
-import { NotificationPriority, NotificationType } from "../../constant/enum.constant";
-import { NotificationRepository } from "../../repository/notification/notification.repository";
-import { NotificationsService } from "../../service/notifications/notifications.service";
+import { Request, Response } from 'express';
+import { HTTP_STATUS } from '../../constant/statusCode.interface';
+import { Message } from '../../constant/message.interface';
+import { NotificationPriority, NotificationType } from '../../constant/enum.constant';
+import { NotificationRepository } from '../../repository/notification/notification.repository';
+import { NotificationsService } from '../../service/notifications/notifications.service';
 
 const notificationsService = new NotificationsService(new NotificationRepository());
 
@@ -16,7 +16,9 @@ export class NotificationsController {
       const data = await notificationsService.create(req.body);
       return res.status(HTTP_STATUS.CREATED).json({ message: Message.CREATED_SUCCESS, data });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: Message.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -25,7 +27,9 @@ export class NotificationsController {
       const result = await notificationsService.list(req.query);
       return res.status(HTTP_STATUS.OK).json({ message: Message.SUCCESS, ...result });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: Message.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -39,20 +43,24 @@ export class NotificationsController {
       }
       return res.status(HTTP_STATUS.OK).json({ message: Message.UPDATED_SUCCESS, data });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: Message.INTERNAL_SERVER_ERROR });
     }
   }
 
   static async markAllRead(req: Request, res: Response) {
     try {
-      const userId = String(req.body?.userId || req.user?.id || "");
+      const userId = String(req.body?.userId || req.user?.id || '');
       if (!userId) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: Message.BAD_REQUEST });
       }
       await notificationsService.markAllRead(userId);
       return res.status(HTTP_STATUS.OK).json({ message: Message.UPDATED_SUCCESS });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: Message.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -64,23 +72,23 @@ export class NotificationsController {
       const allowedPriority = Object.values(NotificationPriority);
       const allowedType = Object.values(NotificationType);
       const hasUpdateField =
-        typeof payload.content === "string" ||
-        typeof payload.priority !== "undefined" ||
-        typeof payload.type !== "undefined" ||
-        typeof payload.actionLink !== "undefined" ||
-        typeof payload.isRead !== "undefined";
+        typeof payload.content === 'string' ||
+        typeof payload.priority !== 'undefined' ||
+        typeof payload.type !== 'undefined' ||
+        typeof payload.actionLink !== 'undefined' ||
+        typeof payload.isRead !== 'undefined';
 
       if (!hasUpdateField) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: Message.BAD_REQUEST });
       }
-      if (typeof payload.priority !== "undefined") {
+      if (typeof payload.priority !== 'undefined') {
         const normalizedPriority = String(payload.priority).toUpperCase();
         if (!allowedPriority.includes(normalizedPriority as NotificationPriority)) {
           return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: Message.BAD_REQUEST });
         }
         payload.priority = normalizedPriority;
       }
-      if (typeof payload.type !== "undefined") {
+      if (typeof payload.type !== 'undefined') {
         const normalizedType = String(payload.type).toUpperCase();
         if (!allowedType.includes(normalizedType as NotificationType)) {
           return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: Message.BAD_REQUEST });
@@ -94,7 +102,9 @@ export class NotificationsController {
       }
       return res.status(HTTP_STATUS.OK).json({ message: Message.UPDATED_SUCCESS, data });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: Message.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -108,7 +118,9 @@ export class NotificationsController {
       }
       return res.status(HTTP_STATUS.OK).json({ message: Message.DELETED_SUCCESS });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: Message.INTERNAL_SERVER_ERROR });
     }
   }
 }

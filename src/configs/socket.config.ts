@@ -1,15 +1,16 @@
-import { Server, ServerOptions, Socket } from "socket.io";
-import http from "http";
-import jwt from "jsonwebtoken";
-import { isAllowedOrigin, socketCorsOptions } from "./cors.config";
-import { SessionService } from "../service/security/session.service";
-import { envConfig } from "./env.config";
+import { Server, ServerOptions, Socket } from 'socket.io';
+import http from 'http';
+import jwt from 'jsonwebtoken';
+import { isAllowedOrigin, socketCorsOptions } from './cors.config';
+import { SessionService } from '../service/security/session.service';
+import { envConfig } from './env.config';
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || process.env.ACCESS_TOKEN_SECRET || "access_secret";
+const ACCESS_SECRET =
+  process.env.JWT_ACCESS_SECRET || process.env.ACCESS_TOKEN_SECRET || 'access_secret';
 
 export const socketOptions: Partial<ServerOptions> = {
   cors: socketCorsOptions,
-  transports: ["websocket", "polling"],
+  transports: ['websocket', 'polling'],
   allowRequest: (req, callback) => {
     callback(null, isAllowedOrigin(req.headers.origin));
   },
@@ -41,10 +42,10 @@ const socketAuth = async (socket: Socket, next: (err?: Error) => void): Promise<
   try {
     const token =
       (socket.handshake.auth?.token as string | undefined) ||
-      (socket.handshake.headers?.authorization as string | undefined)?.replace(/^Bearer\s+/i, "");
+      (socket.handshake.headers?.authorization as string | undefined)?.replace(/^Bearer\s+/i, '');
 
     if (!token) {
-      next(new Error("No token provided"));
+      next(new Error('No token provided'));
       return;
     }
 
@@ -52,12 +53,12 @@ const socketAuth = async (socket: Socket, next: (err?: Error) => void): Promise<
     try {
       decoded = jwt.verify(token, ACCESS_SECRET as jwt.Secret) as SocketAuthPayload;
     } catch {
-      next(new Error("Invalid or expired token"));
+      next(new Error('Invalid or expired token'));
       return;
     }
 
     if (!decoded.userId) {
-      next(new Error("Invalid token payload"));
+      next(new Error('Invalid token payload'));
       return;
     }
 
@@ -65,7 +66,7 @@ const socketAuth = async (socket: Socket, next: (err?: Error) => void): Promise<
       const sessionService = new SessionService();
       const validation = await sessionService.validateSession(decoded.userId, decoded.sessionId);
       if (!validation.valid) {
-        next(new Error(validation.reason || "Session invalid"));
+        next(new Error(validation.reason || 'Session invalid'));
         return;
       }
     }
@@ -82,7 +83,7 @@ const socketAuth = async (socket: Socket, next: (err?: Error) => void): Promise<
 
     next();
   } catch {
-    next(new Error("Authentication failed"));
+    next(new Error('Authentication failed'));
   }
 };
 
@@ -91,8 +92,8 @@ export const setupSocket = (server: http.Server) => {
 
   io.use(socketAuth);
 
-  io.on("connection", (socket) => {
-    socket.emit("connected", { ok: true });
+  io.on('connection', (socket) => {
+    socket.emit('connected', { ok: true });
   });
 
   ioInstance = io;

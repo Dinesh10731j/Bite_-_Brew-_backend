@@ -1,4 +1,4 @@
-import { HelmetOptions } from "helmet";
+import { HelmetOptions } from 'helmet';
 
 export const helmetOptions: HelmetOptions = {
   contentSecurityPolicy: {
@@ -7,8 +7,8 @@ export const helmetOptions: HelmetOptions = {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      fontSrc: ["'self'", "https:", "data:"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      fontSrc: ["'self'", 'https:', 'data:'],
       connectSrc: ["'self'"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
@@ -19,13 +19,13 @@ export const helmetOptions: HelmetOptions = {
   },
 
   frameguard: {
-    action: "deny",
+    action: 'deny',
   },
 
   noSniff: true,
 
   referrerPolicy: {
-    policy: "strict-origin-when-cross-origin",
+    policy: 'strict-origin-when-cross-origin',
   },
 
   dnsPrefetchControl: {
@@ -35,7 +35,7 @@ export const helmetOptions: HelmetOptions = {
   ieNoOpen: true,
 
   permittedCrossDomainPolicies: {
-    permittedPolicies: "none",
+    permittedPolicies: 'none',
   },
 
   hidePoweredBy: true,

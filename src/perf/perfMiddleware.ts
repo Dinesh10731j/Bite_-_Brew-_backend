@@ -1,6 +1,11 @@
- import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { trace, context as otelContext, propagation } from '@opentelemetry/api';
-import { PerformanceTracker, formatDevReport, formatJsonReport, shouldLogReport } from './performanceTracker';
+import {
+  PerformanceTracker,
+  formatDevReport,
+  formatJsonReport,
+  shouldLogReport,
+} from './performanceTracker';
 import { runWithPerfContext } from './perfContext';
 
 export const perfRequestMiddleware = (req: Request, res: Response, next: NextFunction) => {
@@ -55,4 +60,3 @@ export const perfRequestMiddleware = (req: Request, res: Response, next: NextFun
     next();
   }).catch(() => next());
 };
-

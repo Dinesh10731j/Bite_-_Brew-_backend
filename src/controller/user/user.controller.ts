@@ -11,7 +11,9 @@ export class UserController {
       const users = await userService.listUsers(req.query);
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.SUCCESS, ...users });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -26,7 +28,9 @@ export class UserController {
       }
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.SUCCESS, data: user });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -35,7 +39,9 @@ export class UserController {
       const result = await userService.listStaff(req.query);
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.SUCCESS, ...result });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -57,10 +63,15 @@ export class UserController {
 
       return res.status(HTTP_STATUS.CREATED).json({ message: MESSAGES.CREATED_SUCCESS, data });
     } catch (error) {
-      if (error instanceof Error && error.message.includes('Cloudinary credentials are not configured')) {
+      if (
+        error instanceof Error &&
+        error.message.includes('Cloudinary credentials are not configured')
+      ) {
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: error.message });
       }
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -72,7 +83,8 @@ export class UserController {
       }
       const data = await userService.updateStaff(id, {
         name: typeof req.body?.name === 'string' ? req.body.name.trim() : undefined,
-        email: typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : undefined,
+        email:
+          typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : undefined,
         password: typeof req.body?.password === 'string' ? req.body.password : undefined,
       });
 
@@ -82,10 +94,15 @@ export class UserController {
 
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.UPDATED_SUCCESS, data });
     } catch (error) {
-      if (error instanceof Error && error.message.includes('Cloudinary credentials are not configured')) {
+      if (
+        error instanceof Error &&
+        error.message.includes('Cloudinary credentials are not configured')
+      ) {
         return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: error.message });
       }
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -103,7 +120,9 @@ export class UserController {
 
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.DELETED_SUCCESS });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 
@@ -111,7 +130,7 @@ export class UserController {
     try {
       const { id } = req.params;
       if (!id) return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.BAD_REQUEST });
-      const role = String(req.body?.role || "");
+      const role = String(req.body?.role || '');
       if (!Object.values(UserRole).includes(role as UserRole)) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.BAD_REQUEST });
       }
@@ -123,7 +142,9 @@ export class UserController {
 
       return res.status(HTTP_STATUS.OK).json({ message: MESSAGES.UPDATED_SUCCESS, data: user });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: MESSAGES.INTERNAL_SERVER_ERROR });
     }
   }
 }

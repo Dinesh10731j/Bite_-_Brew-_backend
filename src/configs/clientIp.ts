@@ -30,7 +30,10 @@ export const getClientIp = (req: Request): string => {
 
   const xff = req.headers['x-forwarded-for'];
   if (typeof xff === 'string' && xff.length > 0) {
-    const chain = xff.split(',').map((part) => part.trim()).filter(Boolean);
+    const chain = xff
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
     // The rightmost hop is the one appended most recently. We trust exactly
     // TRUSTED_HOPS entries from the right.
     if (chain.length > 0) {

@@ -1,4 +1,4 @@
-import { redisService } from "../../configs/redis.config";
+import { redisService } from '../../configs/redis.config';
 
 export const getCache = async <T>(key: string): Promise<{ cached: boolean; data: T | null }> => {
   const value = await redisService.get(key);
@@ -8,7 +8,7 @@ export const getCache = async <T>(key: string): Promise<{ cached: boolean; data:
   try {
     return { cached: true, data: JSON.parse(value) as T };
   } catch {
-    return { cached: true, data: (value as unknown) as T };
+    return { cached: true, data: value as unknown as T };
   }
 };
 

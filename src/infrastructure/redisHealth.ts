@@ -16,7 +16,7 @@ export const checkRedisHealth = async (): Promise<boolean> => {
     const result = await Promise.race([
       redisClient.ping(),
       new Promise<never>((_resolve, reject) =>
-        setTimeout(() => reject(new Error('Redis health check timed out')), REDIS_CHECK_TIMEOUT_MS)
+        setTimeout(() => reject(new Error('Redis health check timed out')), REDIS_CHECK_TIMEOUT_MS),
       ),
     ]);
     return result === 'PONG';

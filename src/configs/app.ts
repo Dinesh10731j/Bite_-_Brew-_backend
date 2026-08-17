@@ -4,22 +4,22 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { rateLimit } from '../middleware/rateLimit.middleware';
 import { autoUserTracking } from '../middleware/autoUserTracking.middleware';
-import { responseNormalize } from "../middleware/responseNormalize.middleware";
-import indexRouter from "../routes/index.route";
-import { httpLogger } from "../utils/logger";
+import { responseNormalize } from '../middleware/responseNormalize.middleware';
+import indexRouter from '../routes/index.route';
+import { httpLogger } from '../utils/logger';
 import { corsOptions } from './cors.config';
 import { helmetOptions } from './helmet.config';
 import { getMetrics, metricsContentType, recordHttpRequest } from '../observability/metrics';
 import { requestContextMiddleware } from '../observability/context';
-import { errorHandler } from "../middleware/errorHandler.middleware";
+import { errorHandler } from '../middleware/errorHandler.middleware';
 import { healthHandler, readinessHandler } from '../middleware/health.middleware';
 import { requestLogMiddleware } from '../middleware/requestLog.middleware';
 import { envConfig } from './env.config';
 import { getInstanceId } from './instance.config';
 import { logger } from '../infrastructure/logger';
 
-import http from "http";
-import { setupSocket } from "./socket.config";
+import http from 'http';
+import { setupSocket } from './socket.config';
 
 const createApp = () => {
   const app = express();
@@ -33,7 +33,6 @@ const createApp = () => {
   // CORS
   app.use(cors(corsOptions));
 
-
   // Cookies
   app.use(cookieParser());
 
@@ -43,7 +42,7 @@ const createApp = () => {
   // URL encoded parser
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-app.use(helmet(helmetOptions));
+  app.use(helmet(helmetOptions));
   app.use(httpLogger);
   // Structured JSON request logging (requestId, instanceId, method, route, status, duration).
   app.use(requestLogMiddleware);
@@ -75,7 +74,7 @@ app.use(helmet(helmetOptions));
       const durationMs = Number(end - start) / 1_000_000;
       const bytesOut =
         typeof res.getHeader === 'function'
-          ? (Number(res.getHeader('content-length') as any) || undefined)
+          ? Number(res.getHeader('content-length') as any) || undefined
           : undefined;
 
       recordHttpRequest({
@@ -93,10 +92,10 @@ app.use(helmet(helmetOptions));
   // API base path /api/v1/bite-brew
   app.use('/api/v1/bite-brew', indexRouter);
 
-// Global Express error-handling middleware (must be 4 args for Express to recognize it)
+  // Global Express error-handling middleware (must be 4 args for Express to recognize it)
   app.use(errorHandler);
 
-// Health probes - must be registered BEFORE the API routes and error handler
+  // Health probes - must be registered BEFORE the API routes and error handler
   // so they are always reachable, even if other middleware fails.
   app.get('/health', healthHandler);
   app.get('/ready', readinessHandler);
@@ -113,7 +112,6 @@ app.use(helmet(helmetOptions));
 
   // Create HTTP server (don't listen)
   const server = http.createServer(app);
-
 
   const io = setupSocket(server);
 

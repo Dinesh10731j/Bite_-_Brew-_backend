@@ -1,9 +1,9 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
-import { GalleryCategory } from "../../constant/enum.constant";
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { GalleryCategory } from '../../constant/enum.constant';
 
-@Entity("gallery_images")
+@Entity('gallery_images')
 export class GalleryImage {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column()
@@ -12,12 +12,11 @@ export class GalleryImage {
   url!: string;
 
   @Index()
-  @Column({ type: "enum", enum: GalleryCategory, default: GalleryCategory.FOOD })
+  @Column({ type: 'enum', enum: GalleryCategory, default: GalleryCategory.FOOD })
   category!: string;
 
-  @Column({ type: "text", array: true, nullable: true })
+  @Column({ type: 'text', array: true, nullable: true })
   tags?: string[];
-
 
   @Column({ default: false })
   featured!: boolean;

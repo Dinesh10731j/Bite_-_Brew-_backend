@@ -1,11 +1,13 @@
-import "reflect-metadata";
+import 'reflect-metadata';
 import { DataSource } from 'typeorm';
-import { envConfig } from "./env.config";
+import { envConfig } from './env.config';
 import url from 'url';
 
 const dbUrl =
   envConfig.DB_URL ||
-  (process.env.NODE_ENV === "test" ? "postgresql://postgres:postgres@localhost:5432/bitebrew" : undefined);
+  (process.env.NODE_ENV === 'test'
+    ? 'postgresql://postgres:postgres@localhost:5432/bitebrew'
+    : undefined);
 if (!dbUrl) {
   throw new Error('DB_URL is required in environment variables');
 }
@@ -15,18 +17,16 @@ const auth = (parsedUrl.auth || '').split(':');
 const username = auth[0] || '';
 const password = auth[1] || '';
 const database = parsedUrl.pathname?.replace('/', '') || '';
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = process.env.NODE_ENV === 'production';
 const synchronize = process.env.DB_SYNCHRONIZE
-  ? process.env.DB_SYNCHRONIZE === "true"
+  ? process.env.DB_SYNCHRONIZE === 'true'
   : !isProduction;
-const isTsRuntime = __filename.endsWith(".ts");
+const isTsRuntime = __filename.endsWith('.ts');
 const entityPaths = isTsRuntime
-  ? ["src/**/*.entity.ts", "src/**/*.entities.ts", "src/**/*.entities/*.ts"]
-  : ["dist/**/*.entity.js", "dist/**/*.entities.js", "dist/**/*.entities/*.js"];
+  ? ['src/**/*.entity.ts', 'src/**/*.entities.ts', 'src/**/*.entities/*.ts']
+  : ['dist/**/*.entity.js', 'dist/**/*.entities.js', 'dist/**/*.entities/*.js'];
 
-const migrationPaths = isTsRuntime
-  ? ["src/migrations/**/*.ts"]
-  : ["dist/migrations/**/*.js"];
+const migrationPaths = isTsRuntime ? ['src/migrations/**/*.ts'] : ['dist/migrations/**/*.js'];
 
 /**
  * PostgreSQL Connection Pool Configuration
@@ -88,8 +88,8 @@ const sslConfig = isProduction
   : { rejectUnauthorized: false };
 
 export const AppDataSource = new DataSource({
-  type: "postgres" as const,
-  host: parsedUrl.hostname || "localhost",
+  type: 'postgres' as const,
+  host: parsedUrl.hostname || 'localhost',
   port: parsedUrl.port ? parseInt(parsedUrl.port) : 5432,
   username,
   password,

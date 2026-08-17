@@ -1,36 +1,44 @@
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-import { NotificationPriority, NotificationType } from "../../constant/enum.constant";
-import { User } from "../user/user.entity";
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { NotificationPriority, NotificationType } from '../../constant/enum.constant';
+import { User } from '../user/user.entity';
 
-@Entity("notifications")
+@Entity('notifications')
 export class Notification {
-    @PrimaryGeneratedColumn("uuid")
-    id!: string;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
-    @Column({ type: "text" })
-    content!: string;
+  @Column({ type: 'text' })
+  content!: string;
 
-    @Column({ type: "enum", enum: NotificationType, default: NotificationType.SYSTEM })
-    type!: string;
+  @Column({ type: 'enum', enum: NotificationType, default: NotificationType.SYSTEM })
+  type!: string;
 
-    @Column({ type: "enum", enum: NotificationPriority, default: NotificationPriority.LOW })
-    priority!: string;
+  @Column({ type: 'enum', enum: NotificationPriority, default: NotificationPriority.LOW })
+  priority!: string;
 
-    @Index()
-    @Column({ default: false })
-    isRead!: boolean;
+  @Index()
+  @Column({ default: false })
+  isRead!: boolean;
 
-    @Column({ type: "varchar", nullable: true })
-    actionLink?: string;
+  @Column({ type: 'varchar', nullable: true })
+  actionLink?: string;
 
-    @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
-    @JoinColumn({ name: "userId" })
-    user?: User;
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'userId' })
+  user?: User;
 
-    @Index()
-    @Column({ type: "varchar", nullable: true })
-    userId?: string;
+  @Index()
+  @Column({ type: 'varchar', nullable: true })
+  userId?: string;
 
-    @CreateDateColumn()
-    createdAt!: Date;
+  @CreateDateColumn()
+  createdAt!: Date;
 }

@@ -1,5 +1,5 @@
-import { UploadApiResponse } from "cloudinary";
-import { cloudinary, isCloudinaryConfigured } from "../../configs/cloudinary.config";
+import { UploadApiResponse } from 'cloudinary';
+import { cloudinary, isCloudinaryConfigured } from '../../configs/cloudinary.config';
 
 export type UploadedImageData = {
   url: string;
@@ -11,19 +11,22 @@ export type UploadedImageData = {
 };
 
 const sanitizeFolder = (folder?: string) => {
-  if (!folder) return "bite-brew";
-  const normalized = folder.trim().replace(/\\/g, "/").replace(/\/{2,}/g, "/");
-  if (!normalized) return "bite-brew";
+  if (!folder) return 'bite-brew';
+  const normalized = folder
+    .trim()
+    .replace(/\\/g, '/')
+    .replace(/\/{2,}/g, '/');
+  if (!normalized) return 'bite-brew';
   if (!/^[a-zA-Z0-9/_-]+$/.test(normalized)) {
-    throw new Error("Folder can only contain letters, numbers, slash, dash and underscore.");
+    throw new Error('Folder can only contain letters, numbers, slash, dash and underscore.');
   }
-  return normalized.replace(/^\/+|\/+$/g, "");
+  return normalized.replace(/^\/+|\/+$/g, '');
 };
 
 export class UploadService {
   async uploadImage(file: Express.Multer.File, folder?: string): Promise<UploadedImageData> {
     if (!isCloudinaryConfigured()) {
-      throw new Error("Cloudinary credentials are not configured.");
+      throw new Error('Cloudinary credentials are not configured.');
     }
 
     const targetFolder = sanitizeFolder(folder);
@@ -31,8 +34,8 @@ export class UploadService {
     const result = await new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
-          folder: targetFolder || "bite-brew",
-          resource_type: "image",
+          folder: targetFolder || 'bite-brew',
+          resource_type: 'image',
         },
         (error, uploadResult) => {
           if (error) {
@@ -41,7 +44,7 @@ export class UploadService {
           }
 
           if (!uploadResult) {
-            reject(new Error("Image upload failed."));
+            reject(new Error('Image upload failed.'));
             return;
           }
 

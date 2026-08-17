@@ -1,9 +1,9 @@
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { RegistrationAttempt } from "../../entities/security/registrationAttempt.entity";
-import { RegistrationStatus } from "../../constant/enum.constant";
-import { securityRedis } from "../../configs/redis.config";
-import { envConfig } from "../../configs/env.config";
-import { MoreThan } from "typeorm";
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { RegistrationAttempt } from '../../entities/security/registrationAttempt.entity';
+import { RegistrationStatus } from '../../constant/enum.constant';
+import { securityRedis } from '../../configs/redis.config';
+import { envConfig } from '../../configs/env.config';
+import { MoreThan } from 'typeorm';
 
 export interface RegistrationContext {
   ip: string;
@@ -41,7 +41,7 @@ export class RegistrationProtectionService {
    * Uses Redis counters for fast, distributed enforcement + DB for audit.
    */
   async checkRegistration(ctx: RegistrationContext): Promise<RegistrationCheckResult> {
-    const ip = ctx.ip || "unknown";
+    const ip = ctx.ip || 'unknown';
     const windowSeconds = envConfig.REGISTRATION_WINDOW_SECONDS;
     const maxPerIp = envConfig.MAX_REGISTRATIONS_PER_IP;
     const maxPerDevice = envConfig.MAX_REGISTRATIONS_PER_DEVICE;
@@ -53,12 +53,12 @@ export class RegistrationProtectionService {
 
     // Velocity check per IP.
     try {
-      const ipCount = await securityRedis.getCount("registration", ip);
+      const ipCount = await securityRedis.getCount('registration', ip);
       if (ipCount >= maxPerIp) {
         return {
           allowed: false,
           status: RegistrationStatus.BLOCKED_IP,
-          reason: "Too many registrations from this network. Please try again later.",
+          reason: 'Too many registrations from this network. Please try again later.',
           retryAfterSeconds: windowSeconds,
         };
       }
@@ -69,12 +69,15 @@ export class RegistrationProtectionService {
     // Device-based limit.
     if (ctx.deviceHash) {
       try {
-        const deviceCount = await securityRedis.getCount("registration", `device:${ctx.deviceHash}`);
+        const deviceCount = await securityRedis.getCount(
+          'registration',
+          `device:${ctx.deviceHash}`,
+        );
         if (deviceCount >= maxPerDevice) {
           return {
             allowed: false,
             status: RegistrationStatus.BLOCKED_DEVICE,
-            reason: "Too many registrations from this device.",
+            reason: 'Too many registrations from this device.',
             retryAfterSeconds: windowSeconds,
           };
         }
@@ -89,7 +92,7 @@ export class RegistrationProtectionService {
       return {
         allowed: false,
         status: RegistrationStatus.BLOCKED_IP,
-        reason: "Too many registrations from this network. Please try again later.",
+        reason: 'Too many registrations from this network. Please try again later.',
         retryAfterSeconds: windowSeconds,
       };
     }
@@ -100,7 +103,7 @@ export class RegistrationProtectionService {
         return {
           allowed: false,
           status: RegistrationStatus.BLOCKED_DEVICE,
-          reason: "Too many registrations from this device.",
+          reason: 'Too many registrations from this device.',
           retryAfterSeconds: windowSeconds,
         };
       }
@@ -113,15 +116,18 @@ export class RegistrationProtectionService {
    * Record a registration attempt (both successful and blocked).
    * Increments Redis counters and persists to DB.
    */
-  async recordRegistration(ctx: RegistrationContext, result: RegistrationCheckResult): Promise<void> {
-    const ip = ctx.ip || "unknown";
+  async recordRegistration(
+    ctx: RegistrationContext,
+    result: RegistrationCheckResult,
+  ): Promise<void> {
+    const ip = ctx.ip || 'unknown';
     const windowSeconds = envConfig.REGISTRATION_WINDOW_SECONDS;
 
     // Increment counters regardless of outcome to track velocity.
     try {
-      await securityRedis.incr("registration", ip, windowSeconds);
+      await securityRedis.incr('registration', ip, windowSeconds);
       if (ctx.deviceHash) {
-        await securityRedis.incr("registration", `device:${ctx.deviceHash}`, windowSeconds);
+        await securityRedis.incr('registration', `device:${ctx.deviceHash}`, windowSeconds);
       }
     } catch {
       // Non-fatal.
@@ -144,7 +150,7 @@ export class RegistrationProtectionService {
     }
   }
 
-private async countRecentByIp(ip: string, windowSeconds: number): Promise<number> {
+  private async countRecentByIp(ip: string, windowSeconds: number): Promise<number> {
     const since = new Date(Date.now() - windowSeconds * 1000);
     try {
       return await this.attemptRepo.count({ where: { ipAddress: ip, createdAt: MoreThan(since) } });
@@ -166,9 +172,12 @@ private async countRecentByIp(ip: string, windowSeconds: number): Promise<number
    * Admin whitelist of trusted shared networks (CIDR / exact IPs).
    */
   private isWhitelisted(ip: string): boolean {
-    const raw = process.env.REGISTRATION_WHITELIST || "";
+    const raw = process.env.REGISTRATION_WHITELIST || '';
     if (!raw) return false;
-    const entries = raw.split(",").map((e) => e.trim()).filter(Boolean);
+    const entries = raw
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean);
     return entries.includes(ip);
   }
 }

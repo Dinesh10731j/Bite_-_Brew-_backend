@@ -1,10 +1,16 @@
-import { MessageRepository } from "../../repository/message/message.repository";
-import { buildPaginationMeta, parsePagination } from "../../utils/helpers/pagination_helper";
+import { MessageRepository } from '../../repository/message/message.repository';
+import { buildPaginationMeta, parsePagination } from '../../utils/helpers/pagination_helper';
 
 export class MessageService {
   constructor(private readonly repository: MessageRepository) {}
 
-  create(payload: { senderName: string; phone?: string; email?: string; content: string; source?: string }) {
+  create(payload: {
+    senderName: string;
+    phone?: string;
+    email?: string;
+    content: string;
+    source?: string;
+  }) {
     const messagePayload: {
       senderName: string;
       content: string;
@@ -15,7 +21,7 @@ export class MessageService {
     } = {
       senderName: payload.senderName,
       content: payload.content,
-      source: payload.source || "website",
+      source: payload.source || 'website',
       isRead: false,
     };
     if (payload.phone) messagePayload.phone = payload.phone;
@@ -25,7 +31,7 @@ export class MessageService {
 
   async list(query: { page?: unknown; limit?: unknown; isRead?: unknown }) {
     const { page, limit, skip } = parsePagination(query.page, query.limit, 10);
-    const isRead = typeof query.isRead === "string" ? query.isRead === "true" : undefined;
+    const isRead = typeof query.isRead === 'string' ? query.isRead === 'true' : undefined;
     const [data, total] = await this.repository.list(skip, limit, isRead);
     return { data, pagination: buildPaginationMeta(total, page, limit) };
   }

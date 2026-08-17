@@ -1,55 +1,64 @@
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { OrderStatus, OrderPriority, PaymentMethod } from '../../constant/enum.constant';
+import { MenuItem } from '../menu/menu.entity';
+import { User } from '../user/user.entity';
 
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { OrderStatus, OrderPriority, PaymentMethod } from "../../constant/enum.constant";
-import { MenuItem } from "../menu/menu.entity";
-import { User } from "../user/user.entity";
-
-@Entity("orders")
+@Entity('orders')
 export class Order {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Index()
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   userId?: string;
 
-  @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
-  @JoinColumn({ name: "userId" })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'userId' })
   user?: User;
 
   @Column()
   customerName!: string;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   phone?: string;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   email?: string;
 
-  @Column({ type: "decimal", precision: 10, scale: 2 })
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
   totalPrice!: number;
 
-  @Column({ type: "enum", enum: ["DINE_IN", "TAKEAWAY", "DELIVERY"], default: "DINE_IN" })
+  @Column({ type: 'enum', enum: ['DINE_IN', 'TAKEAWAY', 'DELIVERY'], default: 'DINE_IN' })
   orderType!: string;
 
-  @Column({ type: "enum", enum: PaymentMethod, default: PaymentMethod.CASH })
+  @Column({ type: 'enum', enum: PaymentMethod, default: PaymentMethod.CASH })
   paymentMethod!: PaymentMethod;
 
-  @Column({ default: "pending" })
+  @Column({ default: 'pending' })
   paymentStatus!: string;
 
   @Index()
-  @Column({ type: "enum", enum: OrderStatus, default: OrderStatus.PENDING })
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status!: OrderStatus;
 
   @Index()
-  @Column({ type: "enum", enum: OrderPriority, default: OrderPriority.MEDIUM })
+  @Column({ type: 'enum', enum: OrderPriority, default: OrderPriority.MEDIUM })
   priority!: OrderPriority;
 
-  @Column({ type: "varchar", nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   tableNumber?: string;
 
-  @Column({ type: "text", nullable: true })
+  @Column({ type: 'text', nullable: true })
   deliveryAddress?: string;
 
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order)
@@ -62,27 +71,27 @@ export class Order {
   updatedAt!: Date;
 }
 
-@Entity("order_items")
+@Entity('order_items')
 export class OrderItem {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column()
   quantity!: number;
 
-  @Column({ type: "decimal", precision: 10, scale: 2 })
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
   price!: number;
 
-  @ManyToOne(() => Order, (order) => order.orderItems, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "orderId" })
+  @ManyToOne(() => Order, (order) => order.orderItems, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'orderId' })
   order!: Order;
 
   @Index()
   @Column()
   orderId!: string;
 
-  @ManyToOne(() => MenuItem, (menuItem) => menuItem.orderItems, { onDelete: "RESTRICT" })
-  @JoinColumn({ name: "menuItemId" })
+  @ManyToOne(() => MenuItem, (menuItem) => menuItem.orderItems, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'menuItemId' })
   menuItem!: MenuItem;
 
   @Index()

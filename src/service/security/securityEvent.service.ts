@@ -1,6 +1,6 @@
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { SecurityEvent } from "../../entities/security/securityEvent.entity";
-import { SecurityEventType } from "../../constant/enum.constant";
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { SecurityEvent } from '../../entities/security/securityEvent.entity';
+import { SecurityEventType } from '../../constant/enum.constant';
 
 export interface SecurityEventInput {
   userId?: string;

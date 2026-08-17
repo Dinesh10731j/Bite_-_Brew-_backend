@@ -1,5 +1,5 @@
 const NEWSLETTER_LOGO_URL =
-  "https://res.cloudinary.com/dztcsje3w/image/upload/v1775622735/bite-brew/gallery/fd2hfqfyyppvym14fkgt.jpg";
+  'https://res.cloudinary.com/dztcsje3w/image/upload/v1775622735/bite-brew/gallery/fd2hfqfyyppvym14fkgt.jpg';
 
 type NewsletterWelcomeTemplateInput = {
   email: string;
@@ -19,29 +19,31 @@ export type NewsletterCampaignTemplateInput = {
 
 const escapeHtml = (value: string): string =>
   value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 const normalizeUrl = (value?: string): string => {
-  if (!value) return "#";
+  if (!value) return '#';
   const trimmed = value.trim();
-  if (!trimmed) return "#";
+  if (!trimmed) return '#';
 
   try {
     const parsed = new URL(trimmed);
-    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
       return parsed.toString();
     }
-    return "#";
+    return '#';
   } catch (_error) {
-    return "#";
+    return '#';
   }
 };
 
-export const buildNewsletterWelcomeTemplate = ({ email }: NewsletterWelcomeTemplateInput): string => {
+export const buildNewsletterWelcomeTemplate = ({
+  email,
+}: NewsletterWelcomeTemplateInput): string => {
   const safeEmail = escapeHtml(email);
 
   return `
@@ -110,15 +112,20 @@ export const buildNewsletterWelcomeTemplate = ({ email }: NewsletterWelcomeTempl
 
 export const buildNewsletterCampaignTemplate = (input: NewsletterCampaignTemplateInput): string => {
   const headline = escapeHtml(input.headline);
-  const intro = escapeHtml(input.intro || "Fresh updates from Bite Brew Cafe are here for you.");
-  const offerTitle = escapeHtml(input.offerTitle || "Special Offer");
-  const offerDescription = escapeHtml(input.offerDescription || "Enjoy handcrafted coffee, fresh food, and cozy moments.");
-  const couponCode = input.couponCode ? escapeHtml(input.couponCode) : "";
-  const validUntil = input.validUntil ? escapeHtml(input.validUntil) : "";
-  const ctaText = escapeHtml(input.ctaText || "Grab This Offer");
+  const intro = escapeHtml(input.intro || 'Fresh updates from Bite Brew Cafe are here for you.');
+  const offerTitle = escapeHtml(input.offerTitle || 'Special Offer');
+  const offerDescription = escapeHtml(
+    input.offerDescription || 'Enjoy handcrafted coffee, fresh food, and cozy moments.',
+  );
+  const couponCode = input.couponCode ? escapeHtml(input.couponCode) : '';
+  const validUntil = input.validUntil ? escapeHtml(input.validUntil) : '';
+  const ctaText = escapeHtml(input.ctaText || 'Grab This Offer');
   const ctaUrl = normalizeUrl(input.ctaUrl);
   const events = Array.isArray(input.events)
-    ? input.events.map((event) => escapeHtml(event)).filter((event) => event.length > 0).slice(0, 8)
+    ? input.events
+        .map((event) => escapeHtml(event))
+        .filter((event) => event.length > 0)
+        .slice(0, 8)
     : [];
 
   const eventRows = events
@@ -128,7 +135,7 @@ export const buildNewsletterCampaignTemplate = (input: NewsletterCampaignTemplat
           <td style="padding:8px 0;font-size:14px;color:#4a342a;line-height:1.6;">- ${event}</td>
         </tr>`,
     )
-    .join("");
+    .join('');
 
   return `
 <!doctype html>
@@ -158,8 +165,8 @@ export const buildNewsletterCampaignTemplate = (input: NewsletterCampaignTemplat
                     <td style="padding:16px 18px;">
                       <p style="margin:0 0 6px 0;font-size:18px;line-height:1.4;font-weight:700;color:#6c3f24;">${offerTitle}</p>
                       <p style="margin:0;font-size:14px;line-height:1.7;color:#4f3b2f;">${offerDescription}</p>
-                      ${couponCode ? `<p style="margin:12px 0 0 0;font-size:13px;color:#3d2a20;"><strong>Coupon:</strong> ${couponCode}</p>` : ""}
-                      ${validUntil ? `<p style="margin:8px 0 0 0;font-size:13px;color:#3d2a20;"><strong>Valid Till:</strong> ${validUntil}</p>` : ""}
+                      ${couponCode ? `<p style="margin:12px 0 0 0;font-size:13px;color:#3d2a20;"><strong>Coupon:</strong> ${couponCode}</p>` : ''}
+                      ${validUntil ? `<p style="margin:8px 0 0 0;font-size:13px;color:#3d2a20;"><strong>Valid Till:</strong> ${validUntil}</p>` : ''}
                     </td>
                   </tr>
                 </table>
@@ -175,7 +182,7 @@ export const buildNewsletterCampaignTemplate = (input: NewsletterCampaignTemplat
                 </table>
               </td>
             </tr>`
-                : ""
+                : ''
             }
             <tr>
               <td style="padding:22px 24px 30px 24px;">

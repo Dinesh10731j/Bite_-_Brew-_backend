@@ -21,8 +21,7 @@ export const httpRequestDurationMs = new client.Histogram({
   help: 'HTTP request latency in milliseconds',
   labelNames: ['method', 'route', 'status_bucket'],
   buckets: [
-    5, 10, 25, 50, 75, 100, 150, 200, 300, 400, 600, 800, 1000, 1500, 2000, 3000, 5000,
-    8000, 10000,
+    5, 10, 25, 50, 75, 100, 150, 200, 300, 400, 600, 800, 1000, 1500, 2000, 3000, 5000, 8000, 10000,
   ],
   registers: [registry],
 });
@@ -83,7 +82,11 @@ export const loyaltyReferralCompletionsTotal = new client.Counter({
   registers: [registry],
 });
 
-export const recordLoyaltyTransaction = (params: { type: string; source?: string; amount: number }): void => {
+export const recordLoyaltyTransaction = (params: {
+  type: string;
+  source?: string;
+  amount: number;
+}): void => {
   const source = params.source || 'UNKNOWN';
   loyaltyTransactionsTotal.labels(params.type, source).inc(1);
   loyaltyPointsMovedTotal.labels(params.type, source).inc(Math.abs(params.amount));

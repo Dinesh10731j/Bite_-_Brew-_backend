@@ -56,6 +56,8 @@ describe('UserController staff endpoints', () => {
       }),
     );
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Resource created successfully' }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Resource created successfully' }),
+    );
   });
 });

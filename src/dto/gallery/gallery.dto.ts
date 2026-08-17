@@ -1,5 +1,5 @@
-import { IsBoolean, IsEnum, IsOptional, IsString, IsUrl } from "class-validator";
-import { GalleryCategory } from "../../constant/enum.constant";
+import { IsBoolean, IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
+import { GalleryCategory } from '../../constant/enum.constant';
 
 export class CreateGalleryDTO {
   @IsUrl()

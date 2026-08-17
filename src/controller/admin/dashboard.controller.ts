@@ -122,7 +122,8 @@ export const ordersList = async (req: Request, res: Response) => {
       .take(limit);
 
     if (req.query.status) qb.andWhere('order.status = :status', { status: req.query.status });
-    if (req.query.customerName) qb.andWhere('order.customerName ILIKE :name', { name: `%${req.query.customerName}%` });
+    if (req.query.customerName)
+      qb.andWhere('order.customerName ILIKE :name', { name: `%${req.query.customerName}%` });
 
     const [orders, total] = await qb.getManyAndCount();
     return res.json({

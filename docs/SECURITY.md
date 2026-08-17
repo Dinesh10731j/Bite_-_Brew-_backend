@@ -116,15 +116,15 @@ Implemented on the **frontend** (see `docs/FRONTEND_TAB_SYNC.md`):
 
 Every protected request validates, in order:
 
-| # | Check | Source |
-|---|-------|--------|
-| 1 | Access token present | Cookie / Bearer header |
-| 2 | JWT signature + expiry | Access secret |
-| 3 | User exists + `isActive` | PostgreSQL |
-| 4 | Account not locked | `lockedUntil` |
-| 5 | Redis session exists + `sessionId` match | `session:{userId}` |
-| 6 | Device fingerprint match (configurable) | `x-device-id` hash |
-| 7 | IP anomaly (configurable) | `x-forwarded-for` |
+| #   | Check                                    | Source                 |
+| --- | ---------------------------------------- | ---------------------- |
+| 1   | Access token present                     | Cookie / Bearer header |
+| 2   | JWT signature + expiry                   | Access secret          |
+| 3   | User exists + `isActive`                 | PostgreSQL             |
+| 4   | Account not locked                       | `lockedUntil`          |
+| 5   | Redis session exists + `sessionId` match | `session:{userId}`     |
+| 6   | Device fingerprint match (configurable)  | `x-device-id` hash     |
+| 7   | IP anomaly (configurable)                | `x-forwarded-for`      |
 
 On success it attaches `req.user`, `req.sessionId`, `req.deviceHash`, `req.session` and touches the session activity timestamp.
 
@@ -185,15 +185,15 @@ On success it attaches `req.user`, `req.sessionId`, `req.deviceHash`, `req.sessi
 
 ## 11. Redis Key Design
 
-| Key | Purpose | TTL |
-|-----|---------|-----|
-| `session:{userId}` | Active session JSON | `SESSION_TTL_SECONDS` |
-| `refresh:{tokenId}` | Refresh token metadata | refresh lifetime |
-| `device:{deviceHash}` | Device risk signal | 30 days |
-| `login_attempt:{ip}` | Failed-login counter | lock duration |
-| `registration:{ip}` | Registrations per IP | window |
-| `registration:device:{hash}` | Registrations per device | window |
-| `rl:*` | rate-limiter-flexible | limiter duration |
+| Key                          | Purpose                  | TTL                   |
+| ---------------------------- | ------------------------ | --------------------- |
+| `session:{userId}`           | Active session JSON      | `SESSION_TTL_SECONDS` |
+| `refresh:{tokenId}`          | Refresh token metadata   | refresh lifetime      |
+| `device:{deviceHash}`        | Device risk signal       | 30 days               |
+| `login_attempt:{ip}`         | Failed-login counter     | lock duration         |
+| `registration:{ip}`          | Registrations per IP     | window                |
+| `registration:device:{hash}` | Registrations per device | window                |
+| `rl:*`                       | rate-limiter-flexible    | limiter duration      |
 
 ---
 
@@ -201,13 +201,13 @@ On success it attaches `req.user`, `req.sessionId`, `req.deviceHash`, `req.sessi
 
 Endpoint-specific, Redis-backed limiters (via `rate-limiter-flexible`):
 
-| Endpoint | Points | Duration |
-|----------|--------|----------|
-| Login | 10 | 60s |
-| Registration | 5 | 3600s |
-| Refresh token | 30 | 60s |
-| Password reset | per config | 60s |
-| Public APIs | global limiter | 60s |
+| Endpoint       | Points         | Duration |
+| -------------- | -------------- | -------- |
+| Login          | 10             | 60s      |
+| Registration   | 5              | 3600s    |
+| Refresh token  | 30             | 60s      |
+| Password reset | per config     | 60s      |
+| Public APIs    | global limiter | 60s      |
 
 Global `rateLimit` middleware remains for all routes (auth: 80/60s, read: 900/60s, write: 240/60s).
 

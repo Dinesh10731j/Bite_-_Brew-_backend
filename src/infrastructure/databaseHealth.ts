@@ -22,7 +22,7 @@ export const checkDatabaseHealth = async (): Promise<boolean> => {
     await Promise.race([
       AppDataSource.query('SELECT 1'),
       new Promise<never>((_resolve, reject) =>
-        setTimeout(() => reject(new Error('Database health check timed out')), DB_CHECK_TIMEOUT_MS)
+        setTimeout(() => reject(new Error('Database health check timed out')), DB_CHECK_TIMEOUT_MS),
       ),
     ]);
     return true;

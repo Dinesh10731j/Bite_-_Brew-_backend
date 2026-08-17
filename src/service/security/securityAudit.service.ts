@@ -1,7 +1,7 @@
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { AuditLog } from "../../entities/security/auditLog.entity";
-import { AuditAction } from "../../constant/enum.constant";
-import { envConfig } from "../../configs/env.config";
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { AuditLog } from '../../entities/security/auditLog.entity';
+import { AuditAction } from '../../constant/enum.constant';
+import { envConfig } from '../../configs/env.config';
 
 export interface AuditLogInput {
   userId?: string;

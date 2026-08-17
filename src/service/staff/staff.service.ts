@@ -1,6 +1,6 @@
-import { AppDataSource } from "../../configs/psqlDb.config";
-import { Staff } from "../../entities/staff/staff.entity";
-import { buildPaginationMeta, parsePagination } from "../../utils/helpers/pagination_helper";
+import { AppDataSource } from '../../configs/psqlDb.config';
+import { Staff } from '../../entities/staff/staff.entity';
+import { buildPaginationMeta, parsePagination } from '../../utils/helpers/pagination_helper';
 
 export class StaffService {
   private readonly staffRepo = AppDataSource.getRepository(Staff);
@@ -19,34 +19,39 @@ export class StaffService {
 
   async listStaff(query: { page?: unknown; limit?: unknown; search?: unknown }) {
     const { page, limit, skip } = parsePagination(query.page, query.limit, 10);
-    const search = typeof query.search === "string" ? query.search.trim() : "";
+    const search = typeof query.search === 'string' ? query.search.trim() : '';
 
-    const qb = this.staffRepo.createQueryBuilder("staff").select([
-      "staff.id",
-      "staff.name",
-      "staff.email",
-      "staff.image",
-      "staff.role",
-      "staff.createdAt",
-      "staff.updatedAt",
-    ]);
+    const qb = this.staffRepo
+      .createQueryBuilder('staff')
+      .select([
+        'staff.id',
+        'staff.name',
+        'staff.email',
+        'staff.image',
+        'staff.role',
+        'staff.createdAt',
+        'staff.updatedAt',
+      ]);
 
     if (search) {
-      qb.where("LOWER(staff.name) LIKE :search OR LOWER(staff.email) LIKE :search", {
+      qb.where('LOWER(staff.name) LIKE :search OR LOWER(staff.email) LIKE :search', {
         search: `%${search.toLowerCase()}%`,
       });
     }
 
-    qb.orderBy("staff.createdAt", "DESC").skip(skip).take(limit);
+    qb.orderBy('staff.createdAt', 'DESC').skip(skip).take(limit);
     const [data, total] = await qb.getManyAndCount();
 
-    return { data: data.map((item) => this.sanitizeStaff(item)), pagination: buildPaginationMeta(total, page, limit) };
+    return {
+      data: data.map((item) => this.sanitizeStaff(item)),
+      pagination: buildPaginationMeta(total, page, limit),
+    };
   }
 
   async getStaffById(id: string) {
     const staff = await this.staffRepo.findOne({
       where: { id },
-      select: ["id", "name", "email", "image", "role", "createdAt", "updatedAt"],
+      select: ['id', 'name', 'email', 'image', 'role', 'createdAt', 'updatedAt'],
     });
     return staff ? this.sanitizeStaff(staff) : null;
   }

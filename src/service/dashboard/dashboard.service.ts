@@ -1,10 +1,18 @@
-import { DashboardRepository } from "../../repository/dashboard/dashboard.repository";
+import { DashboardRepository } from '../../repository/dashboard/dashboard.repository';
 
 export class DashboardService {
   constructor(private readonly repository: DashboardRepository) {}
 
   async getOverview(limit = 5) {
-    const [cards, trafficSummary, topSellingItems, recentOrders, recentMessages, notifications, topLocations] = await Promise.all([
+    const [
+      cards,
+      trafficSummary,
+      topSellingItems,
+      recentOrders,
+      recentMessages,
+      notifications,
+      topLocations,
+    ] = await Promise.all([
       this.repository.cards(),
       this.repository.trafficSummary(),
       this.repository.topSellingItems(limit),

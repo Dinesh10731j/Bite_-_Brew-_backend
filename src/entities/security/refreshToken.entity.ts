@@ -7,49 +7,49 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-} from "typeorm";
-import { User } from "../user/user.entity";
+} from 'typeorm';
+import { User } from '../user/user.entity';
 
-@Entity("refresh_tokens")
-@Index(["userId"])
-@Index(["tokenId"], { unique: true })
+@Entity('refresh_tokens')
+@Index(['userId'])
+@Index(['tokenId'], { unique: true })
 export class RefreshToken {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Index()
   @Column()
   userId!: string;
 
-  @ManyToOne(() => User, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "userId" })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
   user!: User;
 
-  @Column({ type: "varchar", length: 80 })
+  @Column({ type: 'varchar', length: 80 })
   tokenId!: string;
 
-  @Column({ type: "varchar", length: 128 })
+  @Column({ type: 'varchar', length: 128 })
   tokenHash!: string;
 
-  @Column({ type: "varchar", length: 80, nullable: true })
+  @Column({ type: 'varchar', length: 80, nullable: true })
   sessionId?: string | null;
 
-  @Column({ type: "boolean", default: false })
+  @Column({ type: 'boolean', default: false })
   isRevoked!: boolean;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   revokedAt?: Date | null;
 
-  @Column({ type: "varchar", length: 64, nullable: true })
+  @Column({ type: 'varchar', length: 64, nullable: true })
   revokedReason?: string | null;
 
-  @Column({ type: "timestamp" })
+  @Column({ type: 'timestamp' })
   expiresAt!: Date;
 
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   usedAt?: Date | null;
 
-  @Column({ type: "varchar", length: 80, nullable: true })
+  @Column({ type: 'varchar', length: 80, nullable: true })
   replacedBy?: string | null;
 
   @CreateDateColumn()

@@ -1,5 +1,5 @@
-import { v2 as cloudinary } from "cloudinary";
-import { envConfig } from "./env.config";
+import { v2 as cloudinary } from 'cloudinary';
+import { envConfig } from './env.config';
 
 const cloudName = envConfig.CLOUDINARY_CLOUD_NAME;
 const apiKey = envConfig.CLOUDINARY_API_KEY;

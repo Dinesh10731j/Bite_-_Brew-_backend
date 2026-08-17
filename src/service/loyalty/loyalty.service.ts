@@ -1,5 +1,5 @@
-import { QueryFailedError } from "typeorm";
-import { Order } from "../../entities/order/order.entity";
+import { QueryFailedError } from 'typeorm';
+import { Order } from '../../entities/order/order.entity';
 import {
   DailyCheckIn,
   LoyaltyAccount,
@@ -9,14 +9,14 @@ import {
   Referral,
   RewardCatalog,
   RewardWallet,
-} from "../../entities/loyalty/loyalty.entities";
-import { LoyaltyRepository } from "../../repository/loyalty/loyalty.repository";
+} from '../../entities/loyalty/loyalty.entities';
+import { LoyaltyRepository } from '../../repository/loyalty/loyalty.repository';
 import {
   recordLoyaltyTransaction,
   recordReferralCompletion,
   recordRewardRedemption,
-} from "../../observability/metrics";
-import { buildPaginationMeta, parsePagination } from "../../utils/helpers/pagination_helper";
+} from '../../observability/metrics';
+import { buildPaginationMeta, parsePagination } from '../../utils/helpers/pagination_helper';
 
 const RULES = {
   pointsPerCurrencyUnit: Number(process.env.LOYALTY_POINTS_PER_CURRENCY_UNIT || 1),
@@ -26,15 +26,15 @@ const RULES = {
   referralReferrerBonus: Number(process.env.LOYALTY_REFERRER_BONUS_POINTS || 50),
   referralFriendBonus: Number(process.env.LOYALTY_FRIEND_BONUS_POINTS || 25),
   tiers: [
-    { tier: "PLATINUM" as LoyaltyTier, minimumSpend: 750 },
-    { tier: "GOLD" as LoyaltyTier, minimumSpend: 300 },
-    { tier: "SILVER" as LoyaltyTier, minimumSpend: 100 },
-    { tier: "BRONZE" as LoyaltyTier, minimumSpend: 0 },
+    { tier: 'PLATINUM' as LoyaltyTier, minimumSpend: 750 },
+    { tier: 'GOLD' as LoyaltyTier, minimumSpend: 300 },
+    { tier: 'SILVER' as LoyaltyTier, minimumSpend: 100 },
+    { tier: 'BRONZE' as LoyaltyTier, minimumSpend: 0 },
   ],
 };
 
 const isUniqueViolation = (error: unknown): boolean =>
-  error instanceof QueryFailedError && (error as any).driverError?.code === "23505";
+  error instanceof QueryFailedError && (error as any).driverError?.code === '23505';
 
 const serviceError = (message: string, statusCode = 400) => {
   const error: Error & { statusCode?: number } = new Error(message);
@@ -48,12 +48,13 @@ const normalizeReferralCode = (value: string): string =>
   value
     .trim()
     .toUpperCase()
-    .replace(/[^A-Z0-9-]/g, "");
+    .replace(/[^A-Z0-9-]/g, '');
 
-const generateReferralCode = (): string => `BITE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+const generateReferralCode = (): string =>
+  `BITE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
 const calculateTier = (totalSpending: number): LoyaltyTier =>
-  RULES.tiers.find((tier) => totalSpending >= tier.minimumSpend)?.tier || "BRONZE";
+  RULES.tiers.find((tier) => totalSpending >= tier.minimumSpend)?.tier || 'BRONZE';
 
 export class LoyaltyService {
   constructor(private readonly repository: LoyaltyRepository) {}
@@ -62,8 +63,15 @@ export class LoyaltyService {
     return this.getOrCreateAccount(customerId, requestedReferralCode);
   }
 
-  async getOrCreateAccount(customerId: string, requestedReferralCode?: string, transactionalManager?: any) {
-    const existingAccount = await this.repository.findByCustomerId(customerId, transactionalManager);
+  async getOrCreateAccount(
+    customerId: string,
+    requestedReferralCode?: string,
+    transactionalManager?: any,
+  ) {
+    const existingAccount = await this.repository.findByCustomerId(
+      customerId,
+      transactionalManager,
+    );
     if (existingAccount) return existingAccount;
 
     const makeAccount = async (referralCode: string) => {
@@ -74,7 +82,7 @@ export class LoyaltyService {
       account.lifetimeEarned = 0;
       account.lifetimeRedeemed = 0;
       account.expiredPoints = 0;
-      account.membershipTier = "BRONZE";
+      account.membershipTier = 'BRONZE';
       account.totalSpending = 0;
       return this.repository.saveAccount(account, transactionalManager);
     };
@@ -82,13 +90,13 @@ export class LoyaltyService {
     if (requestedReferralCode) {
       const referralCode = normalizeReferralCode(requestedReferralCode);
       if (referralCode.length < 3 || referralCode.length > 20) {
-        throw serviceError("Referral code must be between 3 and 20 valid characters.");
+        throw serviceError('Referral code must be between 3 and 20 valid characters.');
       }
       try {
         return await makeAccount(referralCode);
       } catch (error) {
         if (isUniqueViolation(error)) {
-          throw serviceError("Referral code is already in use.", 409);
+          throw serviceError('Referral code is already in use.', 409);
         }
         throw error;
       }
@@ -102,7 +110,7 @@ export class LoyaltyService {
       }
     }
 
-    throw serviceError("Unable to generate a unique referral code.", 500);
+    throw serviceError('Unable to generate a unique referral code.', 500);
   }
 
   async getCustomerDashboard(customerId: string) {
@@ -114,7 +122,9 @@ export class LoyaltyService {
       account,
       streakCount: latestCheckIn ? latestCheckIn.streakCount : 0,
       lastCheckInDate: latestCheckIn ? latestCheckIn.checkInDate : null,
-      activeRewards: wallet.filter((item) => !item.isUsed && (!item.expiresAt || item.expiresAt > new Date())).length,
+      activeRewards: wallet.filter(
+        (item) => !item.isUsed && (!item.expiresAt || item.expiresAt > new Date()),
+      ).length,
     };
   }
 
@@ -129,27 +139,31 @@ export class LoyaltyService {
   async redeemRewardItem(customerId: string, rewardId: string) {
     return this.repository.runInTransaction(async (transactionalManager) => {
       const reward = await this.repository.findRewardForUpdate(rewardId, transactionalManager);
-      if (!reward || !reward.isActive) throw serviceError("Inactive or invalid reward specified.");
+      if (!reward || !reward.isActive) throw serviceError('Inactive or invalid reward specified.');
       if (reward.expiryDate && new Date(reward.expiryDate) < new Date()) {
-        throw serviceError("This reward catalog option has expired.");
+        throw serviceError('This reward catalog option has expired.');
       }
-      if (reward.inventoryLimit !== undefined && reward.inventoryLimit !== null && reward.inventoryLimit <= 0) {
-        throw serviceError("Reward inventory limit reached.");
+      if (
+        reward.inventoryLimit !== undefined &&
+        reward.inventoryLimit !== null &&
+        reward.inventoryLimit <= 0
+      ) {
+        throw serviceError('Reward inventory limit reached.');
       }
 
       if (reward.usageLimit) {
         const customerRedemptionCount = await this.repository.countCustomerRewardRedemptions(
           customerId,
           reward.id,
-          transactionalManager
+          transactionalManager,
         );
         if (customerRedemptionCount >= reward.usageLimit) {
-          throw serviceError("Reward usage limit reached for this customer.");
+          throw serviceError('Reward usage limit reached for this customer.');
         }
       }
 
       const account = await this.repository.findAccountForUpdate(customerId, transactionalManager);
-      if (!account) throw serviceError("Customer loyalty profile record missing.", 404);
+      if (!account) throw serviceError('Customer loyalty profile record missing.', 404);
       if (account.currentPoints < reward.pointsRequired) {
         throw serviceError(`Insufficient points balance. Required: ${reward.pointsRequired}`);
       }
@@ -172,13 +186,16 @@ export class LoyaltyService {
         expiry.setDate(expiry.getDate() + reward.validityDays);
         walletItem.expiresAt = expiry;
       }
-      const savedWalletItem = await this.repository.saveWalletItem(walletItem, transactionalManager);
+      const savedWalletItem = await this.repository.saveWalletItem(
+        walletItem,
+        transactionalManager,
+      );
 
       const transaction = await this.recordPointsMovement({
         customerId,
         amount: reward.pointsRequired,
-        type: "REDEMPTION",
-        sourceType: "REWARD_REDEMPTION",
+        type: 'REDEMPTION',
+        sourceType: 'REWARD_REDEMPTION',
         sourceId: savedWalletItem.id,
         reason: `Redeemed reward: ${reward.title}`,
         balanceAfter: account.currentPoints,
@@ -199,11 +216,18 @@ export class LoyaltyService {
 
     return this.repository.runInTransaction(async (transactionalManager) => {
       // Check for existing check-in today with pessimistic lock via unique index
-      const existingToday = await this.repository.findCheckInByDate(customerId, todayStr, transactionalManager);
-      if (existingToday) throw serviceError("Already checked in today.");
+      const existingToday = await this.repository.findCheckInByDate(
+        customerId,
+        todayStr,
+        transactionalManager,
+      );
+      if (existingToday) throw serviceError('Already checked in today.');
 
       // Fetch latest check-in INSIDE the transaction to prevent race conditions
-      const latestCheckIn = await this.repository.findLatestCheckInForUpdate(customerId, transactionalManager);
+      const latestCheckIn = await this.repository.findLatestCheckInForUpdate(
+        customerId,
+        transactionalManager,
+      );
 
       let newStreak = 1;
       if (latestCheckIn) {
@@ -215,11 +239,18 @@ export class LoyaltyService {
       }
 
       const streakBonus =
-        newStreak >= 7 ? RULES.dailyCheckInSevenDayBonus : newStreak >= 3 ? RULES.dailyCheckInThreeDayBonus : 0;
+        newStreak >= 7
+          ? RULES.dailyCheckInSevenDayBonus
+          : newStreak >= 3
+            ? RULES.dailyCheckInThreeDayBonus
+            : 0;
       const pointsAwarded = RULES.dailyCheckInBasePoints + streakBonus;
 
-      const lockedAccount = await this.repository.findAccountForUpdate(customerId, transactionalManager);
-      if (!lockedAccount) throw serviceError("Customer loyalty profile record missing.", 404);
+      const lockedAccount = await this.repository.findAccountForUpdate(
+        customerId,
+        transactionalManager,
+      );
+      if (!lockedAccount) throw serviceError('Customer loyalty profile record missing.', 404);
 
       lockedAccount.currentPoints += pointsAwarded;
       lockedAccount.lifetimeEarned += pointsAwarded;
@@ -234,8 +265,8 @@ export class LoyaltyService {
       await this.recordPointsMovement({
         customerId,
         amount: pointsAwarded,
-        type: "EARNING",
-        sourceType: "DAILY_CHECK_IN",
+        type: 'EARNING',
+        sourceType: 'DAILY_CHECK_IN',
         sourceId: todayStr,
         reason: `Daily check-in streak: day ${newStreak}`,
         balanceAfter: lockedAccount.currentPoints,
@@ -248,55 +279,66 @@ export class LoyaltyService {
 
   async applyReferralCode(customerId: string, referralCode: string) {
     const cleanCode = normalizeReferralCode(referralCode);
-    if (!cleanCode) throw serviceError("Referral code is required.");
+    if (!cleanCode) throw serviceError('Referral code is required.');
 
     const referrerAccount = await this.repository.findReferralByCode(cleanCode);
-    if (!referrerAccount) throw serviceError("Invalid referral code provided.");
-    if (referrerAccount.customerId === customerId) throw serviceError("Self referral mutations are blocked.");
+    if (!referrerAccount) throw serviceError('Invalid referral code provided.');
+    if (referrerAccount.customerId === customerId)
+      throw serviceError('Self referral mutations are blocked.');
 
     const existingRelationship = await this.repository.findReferralByFriendId(customerId);
-    if (existingRelationship) throw serviceError("Already referred by a customer.");
+    if (existingRelationship) throw serviceError('Already referred by a customer.');
 
     await this.getOrCreateAccount(customerId);
 
     const referral = new Referral();
     referral.referrerId = referrerAccount.customerId;
     referral.friendId = customerId;
-    referral.status = "PENDING";
+    referral.status = 'PENDING';
 
     return this.repository.saveReferral(referral);
   }
 
-  async awardCompletedOrderPoints(order: Pick<Order, "id" | "userId" | "totalPrice" | "status">) {
-    if (!order.userId) return { awarded: false, reason: "ORDER_HAS_NO_USER" as const };
+  async awardCompletedOrderPoints(order: Pick<Order, 'id' | 'userId' | 'totalPrice' | 'status'>) {
+    if (!order.userId) return { awarded: false, reason: 'ORDER_HAS_NO_USER' as const };
 
     return this.repository.runInTransaction(async (transactionalManager) => {
       const existing = await this.repository.findTransactionBySource(
         order.userId as string,
-        "ORDER",
+        'ORDER',
         order.id,
-        "EARNING",
-        transactionalManager
+        'EARNING',
+        transactionalManager,
       );
-      if (existing) return { awarded: false, reason: "ALREADY_AWARDED" as const, transaction: existing };
+      if (existing)
+        return { awarded: false, reason: 'ALREADY_AWARDED' as const, transaction: existing };
 
-      const account = await this.getOrCreateAccount(order.userId as string, undefined, transactionalManager);
-      const lockedAccount = await this.repository.findAccountForUpdate(account.customerId, transactionalManager);
-      if (!lockedAccount) throw serviceError("Customer loyalty profile record missing.", 404);
+      const account = await this.getOrCreateAccount(
+        order.userId as string,
+        undefined,
+        transactionalManager,
+      );
+      const lockedAccount = await this.repository.findAccountForUpdate(
+        account.customerId,
+        transactionalManager,
+      );
+      if (!lockedAccount) throw serviceError('Customer loyalty profile record missing.', 404);
 
       const orderTotal = Number(order.totalPrice || 0);
       const pointsAwarded = Math.max(0, Math.floor(orderTotal * RULES.pointsPerCurrencyUnit));
       lockedAccount.currentPoints += pointsAwarded;
       lockedAccount.lifetimeEarned += pointsAwarded;
-      lockedAccount.totalSpending = Number((Number(lockedAccount.totalSpending || 0) + orderTotal).toFixed(2));
+      lockedAccount.totalSpending = Number(
+        (Number(lockedAccount.totalSpending || 0) + orderTotal).toFixed(2),
+      );
       lockedAccount.membershipTier = calculateTier(lockedAccount.totalSpending);
       await this.repository.saveAccount(lockedAccount, transactionalManager);
 
       const transaction = await this.recordPointsMovement({
         customerId: lockedAccount.customerId,
         amount: pointsAwarded,
-        type: "EARNING",
-        sourceType: "ORDER",
+        type: 'EARNING',
+        sourceType: 'ORDER',
         sourceId: order.id,
         reason: `Purchase reward for completed order ${order.id}`,
         balanceAfter: lockedAccount.currentPoints,
@@ -304,21 +346,35 @@ export class LoyaltyService {
         transactionalManager,
       });
 
-      const referralResult = await this.completePendingReferral(lockedAccount.customerId, order.id, transactionalManager);
+      const referralResult = await this.completePendingReferral(
+        lockedAccount.customerId,
+        order.id,
+        transactionalManager,
+      );
       return { awarded: true, pointsAwarded, account: lockedAccount, transaction, referralResult };
     });
   }
 
-  async getCustomerTransactions(customerId: string, query: { page?: unknown; limit?: unknown; type?: unknown }) {
+  async getCustomerTransactions(
+    customerId: string,
+    query: { page?: unknown; limit?: unknown; type?: unknown },
+  ) {
     const { page, limit, skip } = parsePagination(query.page, query.limit, 10);
-    const typeFilter = typeof query.type === "string" ? query.type.toUpperCase() : undefined;
-    const allowedTypes: LoyaltyTransactionType[] = ["EARNING", "REDEMPTION", "EXPIRATION", "ADJUSTMENT"];
+    const typeFilter = typeof query.type === 'string' ? query.type.toUpperCase() : undefined;
+    const allowedTypes: LoyaltyTransactionType[] = [
+      'EARNING',
+      'REDEMPTION',
+      'EXPIRATION',
+      'ADJUSTMENT',
+    ];
 
     const [data, total] = await this.repository.listTransactions(
       customerId,
       skip,
       limit,
-      typeFilter && allowedTypes.includes(typeFilter as LoyaltyTransactionType) ? typeFilter : undefined
+      typeFilter && allowedTypes.includes(typeFilter as LoyaltyTransactionType)
+        ? typeFilter
+        : undefined,
     );
     return { data, pagination: buildPaginationMeta(total, page, limit) };
   }
@@ -330,19 +386,24 @@ export class LoyaltyService {
   async executeManualPointsAdjustment(payload: {
     customerId: string;
     amount: number;
-    type: "GRANT" | "DEDUCT";
+    type: 'GRANT' | 'DEDUCT';
     reason: string;
   }) {
     return this.repository.runInTransaction(async (transactionalManager) => {
-      const account = await this.repository.findAccountForUpdate(payload.customerId, transactionalManager);
-      if (!account) throw serviceError("Loyalty profile record not found.", 404);
+      const account = await this.repository.findAccountForUpdate(
+        payload.customerId,
+        transactionalManager,
+      );
+      if (!account) throw serviceError('Loyalty profile record not found.', 404);
 
-      if (payload.type === "GRANT") {
+      if (payload.type === 'GRANT') {
         account.currentPoints += payload.amount;
         account.lifetimeEarned += payload.amount;
       } else {
         if (account.currentPoints < payload.amount) {
-          throw serviceError(`Insufficient points balance to deduct. Current: ${account.currentPoints}`);
+          throw serviceError(
+            `Insufficient points balance to deduct. Current: ${account.currentPoints}`,
+          );
         }
         account.currentPoints -= payload.amount;
         account.lifetimeRedeemed += payload.amount;
@@ -352,8 +413,8 @@ export class LoyaltyService {
       await this.recordPointsMovement({
         customerId: payload.customerId,
         amount: payload.amount,
-        type: "ADJUSTMENT",
-        sourceType: "ADMIN_ADJUSTMENT",
+        type: 'ADJUSTMENT',
+        sourceType: 'ADMIN_ADJUSTMENT',
         sourceId: `${Date.now()}`,
         reason: `Admin adjustment (${payload.type}): ${payload.reason}`,
         balanceAfter: account.currentPoints,
@@ -366,7 +427,7 @@ export class LoyaltyService {
 
   async createReward(payload: {
     title: string;
-    type: RewardCatalog["type"];
+    type: RewardCatalog['type'];
     pointsRequired: number;
     isActive: boolean;
     usageLimit?: number;
@@ -379,8 +440,8 @@ export class LoyaltyService {
   }
 
   async getSystemAnalyticsWindow(query: { start?: unknown; end?: unknown }) {
-    const start = typeof query.start === "string" ? new Date(query.start) : undefined;
-    const end = typeof query.end === "string" ? new Date(query.end) : undefined;
+    const start = typeof query.start === 'string' ? new Date(query.start) : undefined;
+    const end = typeof query.end === 'string' ? new Date(query.end) : undefined;
     const validStart = start && !Number.isNaN(start.getTime()) ? start : undefined;
     const validEnd = end && !Number.isNaN(end.getTime()) ? end : undefined;
 
@@ -388,20 +449,33 @@ export class LoyaltyService {
     return { rawMetrics, activeRules: RULES, serverTimestamp: new Date() };
   }
 
-  private async completePendingReferral(friendId: string, orderId: string, transactionalManager: any) {
-    const referral = await this.repository.findPendingReferralForUpdate(friendId, transactionalManager);
+  private async completePendingReferral(
+    friendId: string,
+    orderId: string,
+    transactionalManager: any,
+  ) {
+    const referral = await this.repository.findPendingReferralForUpdate(
+      friendId,
+      transactionalManager,
+    );
     if (!referral) return { completed: false };
 
-    const referrer = await this.repository.findAccountForUpdate(referral.referrerId, transactionalManager);
-    const friend = await this.repository.findAccountForUpdate(referral.friendId, transactionalManager);
-    if (!referrer || !friend) return { completed: false, reason: "ACCOUNT_MISSING" as const };
+    const referrer = await this.repository.findAccountForUpdate(
+      referral.referrerId,
+      transactionalManager,
+    );
+    const friend = await this.repository.findAccountForUpdate(
+      referral.friendId,
+      transactionalManager,
+    );
+    if (!referrer || !friend) return { completed: false, reason: 'ACCOUNT_MISSING' as const };
 
     referrer.currentPoints += RULES.referralReferrerBonus;
     referrer.lifetimeEarned += RULES.referralReferrerBonus;
     friend.currentPoints += RULES.referralFriendBonus;
     friend.lifetimeEarned += RULES.referralFriendBonus;
 
-    referral.status = "COMPLETED";
+    referral.status = 'COMPLETED';
     referral.completedAt = new Date();
 
     await this.repository.saveAccount(referrer, transactionalManager);
@@ -411,8 +485,8 @@ export class LoyaltyService {
     await this.recordPointsMovement({
       customerId: referrer.customerId,
       amount: RULES.referralReferrerBonus,
-      type: "EARNING",
-      sourceType: "REFERRAL",
+      type: 'EARNING',
+      sourceType: 'REFERRAL',
       sourceId: referral.id,
       reason: `Referral completed by first order ${orderId}`,
       balanceAfter: referrer.currentPoints,
@@ -421,8 +495,8 @@ export class LoyaltyService {
     await this.recordPointsMovement({
       customerId: friend.customerId,
       amount: RULES.referralFriendBonus,
-      type: "EARNING",
-      sourceType: "REFERRAL",
+      type: 'EARNING',
+      sourceType: 'REFERRAL',
       sourceId: referral.id,
       reason: `Referral signup bonus after first order ${orderId}`,
       balanceAfter: friend.currentPoints,
@@ -455,9 +529,13 @@ export class LoyaltyService {
         balanceAfter: params.balanceAfter,
         metadata: params.metadata || {},
       },
-      params.transactionalManager
+      params.transactionalManager,
     );
-    recordLoyaltyTransaction({ type: params.type, source: params.sourceType, amount: params.amount });
+    recordLoyaltyTransaction({
+      type: params.type,
+      source: params.sourceType,
+      amount: params.amount,
+    });
     return transaction;
   }
 }

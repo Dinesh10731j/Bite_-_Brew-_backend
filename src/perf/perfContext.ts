@@ -14,4 +14,3 @@ export const runWithPerfContext = <T>(ctx: PerfContext, fn: () => Promise<T>): P
 export const getPerfTracker = (): PerformanceTracker | undefined => {
   return perfAsyncLocal.getStore()?.tracker;
 };
-

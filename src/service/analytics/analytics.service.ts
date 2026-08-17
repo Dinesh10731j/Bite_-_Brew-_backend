@@ -1,4 +1,4 @@
-import { AnalyticsRepository } from "../../repository/analytics/analytics.repository";
+import { AnalyticsRepository } from '../../repository/analytics/analytics.repository';
 
 export class AnalyticsService {
   constructor(private readonly repository: AnalyticsRepository) {}
@@ -11,9 +11,8 @@ export class AnalyticsService {
       this.repository.getDailyOrders(days),
       this.repository.getDailyRevenue(days),
     ]);
-    const conversionRate = totals.visits > 0
-      ? Number(((totals.orders / totals.visits) * 100).toFixed(2))
-      : 0;
+    const conversionRate =
+      totals.visits > 0 ? Number(((totals.orders / totals.visits) * 100).toFixed(2)) : 0;
 
     return {
       totals,

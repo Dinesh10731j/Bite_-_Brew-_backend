@@ -43,7 +43,10 @@ const enabled = () => {
 
 export class PerformanceTracker {
   private readonly startedAt = nowMs();
-  private stages = new Map<string, { start: number; metadata?: Record<string, unknown>; span?: Span }>();
+  private stages = new Map<
+    string,
+    { start: number; metadata?: Record<string, unknown>; span?: Span }
+  >();
   private ended = false;
 
   constructor(
@@ -71,7 +74,8 @@ export class PerformanceTracker {
       const tracer = trace.getTracer('performance-tracker');
       const activeCtx = this.opts.parentCtx ?? otelContext.active();
 
-      span = tracer.startSpan(`performance.stage.${stageName}`,
+      span = tracer.startSpan(
+        `performance.stage.${stageName}`,
         {
           kind: SpanKind.INTERNAL,
           attributes: {
@@ -100,7 +104,8 @@ export class PerformanceTracker {
       const sev = getSeverity(durationMs);
       s.span.setAttribute('performance.severity', sev);
       if (metadata) {
-        for (const [k, v] of Object.entries(metadata)) s.span.setAttribute(`performance.meta.${k}`, String(v));
+        for (const [k, v] of Object.entries(metadata))
+          s.span.setAttribute(`performance.meta.${k}`, String(v));
       }
       s.span.setStatus({ code: SpanStatusCode.OK });
       s.span.end();
@@ -126,7 +131,11 @@ export class PerformanceTracker {
 
   private _endedStages: PerformanceStage[] = [];
 
-  async measure<T>(stageName: string, fn: () => Promise<T>, metadata?: Record<string, unknown>): Promise<T> {
+  async measure<T>(
+    stageName: string,
+    fn: () => Promise<T>,
+    metadata?: Record<string, unknown>,
+  ): Promise<T> {
     this.start(stageName, metadata);
     try {
       return await fn();
@@ -152,9 +161,7 @@ export class PerformanceTracker {
 
     const durationMs = this.getTotalDurationMs();
 
-    const breakdown = this._endedStages
-      .slice()
-      .sort((a, b) => b.durationMs - a.durationMs);
+    const breakdown = this._endedStages.slice().sort((a, b) => b.durationMs - a.durationMs);
 
     const totalSeverity = getSeverity(durationMs);
 
@@ -186,7 +193,9 @@ export const formatSeverityEmoji = (sev: StageSeverity) => {
 };
 
 export const formatDevReport = (report: PerformanceReport) => {
-  const routeLine = report.route ? `${report.method ?? ''} ${report.route}`.trim() : report.target ?? '';
+  const routeLine = report.route
+    ? `${report.method ?? ''} ${report.route}`.trim()
+    : (report.target ?? '');
 
   const header = [
     '================================',
@@ -196,9 +205,11 @@ export const formatDevReport = (report: PerformanceReport) => {
     `Total: ${Math.round(report.durationMs)}ms`,
     '',
     'Breakdown:',
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 
-  const lines = report.breakdown.map(s => {
+  const lines = report.breakdown.map((s) => {
     const sev = formatSeverityEmoji(s.severity);
     return `${s.name}: ${Math.round(s.durationMs)}ms ${sev}`;
   });
@@ -216,4 +227,3 @@ export const shouldLogReport = (durationMs: number): boolean => {
   const thresholdMs = Number(process.env.PERFORMANCE_LOG_THRESHOLD_MS ?? 0);
   return durationMs >= thresholdMs;
 };
-

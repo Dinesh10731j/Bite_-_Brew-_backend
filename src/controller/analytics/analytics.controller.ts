@@ -1,8 +1,8 @@
-import { Request, Response } from "express";
-import { HTTP_STATUS } from "../../constant/statusCode.interface";
-import { Message } from "../../constant/message.interface";
-import { AnalyticsRepository } from "../../repository/analytics/analytics.repository";
-import { AnalyticsService } from "../../service/analytics/analytics.service";
+import { Request, Response } from 'express';
+import { HTTP_STATUS } from '../../constant/statusCode.interface';
+import { Message } from '../../constant/message.interface';
+import { AnalyticsRepository } from '../../repository/analytics/analytics.repository';
+import { AnalyticsService } from '../../service/analytics/analytics.service';
 
 const analyticsService = new AnalyticsService(new AnalyticsRepository());
 
@@ -13,7 +13,9 @@ export class AnalyticsController {
       const data = await analyticsService.summary(days);
       return res.status(HTTP_STATUS.OK).json({ message: Message.SUCCESS, data });
     } catch (_error) {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: Message.INTERNAL_SERVER_ERROR });
+      return res
+        .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+        .json({ message: Message.INTERNAL_SERVER_ERROR });
     }
   }
 }

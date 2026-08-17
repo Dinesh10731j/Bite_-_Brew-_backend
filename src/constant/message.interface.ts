@@ -22,7 +22,8 @@ export const MESSAGES = {
   PASSWORD_RESET_SUCCESS: 'Password reset successful',
   ORDER_PLACED: 'Order placed successfully',
   // ===== Security / Session Messages =====
-  ACCOUNT_LOCKED: 'Account temporarily locked due to too many failed attempts. Please try again later.',
+  ACCOUNT_LOCKED:
+    'Account temporarily locked due to too many failed attempts. Please try again later.',
   ACCOUNT_INACTIVE: 'Account is inactive or disabled.',
   ACCOUNT_ALREADY_ACTIVE: 'This account is already active in another tab or device.',
   FORCED_LOGOUT: 'Your account was signed in from another device.',
@@ -30,11 +31,14 @@ export const MESSAGES = {
   SESSION_INVALID: 'Invalid or expired session.',
   SESSION_REVOKED: 'Session revoked successfully.',
   SESSIONS_REVOKED: 'Sessions revoked successfully.',
-  REGISTRATION_LIMIT_EXCEEDED: 'Too many accounts created from this network. Please try again later.',
-  REGISTRATION_DEVICE_LIMIT_EXCEEDED: 'Too many accounts created on this device. Please try again later.',
+  REGISTRATION_LIMIT_EXCEEDED:
+    'Too many accounts created from this network. Please try again later.',
+  REGISTRATION_DEVICE_LIMIT_EXCEEDED:
+    'Too many accounts created on this device. Please try again later.',
   DEVICE_CHANGED: 'Sign-in detected from a new device. Verify your identity to continue.',
   IP_ANOMALY: 'Sign-in detected from an unusual location.',
-  REFRESH_TOKEN_REUSE: 'Security alert: refresh token reuse detected. All sessions have been revoked.',
+  REFRESH_TOKEN_REUSE:
+    'Security alert: refresh token reuse detected. All sessions have been revoked.',
   EMAIL_NOT_VERIFIED: 'Please verify your email address before signing in.',
   LOGIN_HISTORY_FETCHED: 'Login history fetched successfully.',
   SESSIONS_FETCHED: 'Active sessions fetched successfully.',
